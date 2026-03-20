@@ -14,7 +14,7 @@ def get_client() -> Client:
 def db():
     return get_client()
 
-# ─── Hide Streamlit branding & force dark ──────────────────────────────────────
+# ─── Hide Streamlit branding ───────────────────────────────────────────────────
 st.markdown("""
 <style>
 #MainMenu {visibility: hidden;}
@@ -22,6 +22,13 @@ footer {visibility: hidden;}
 header {visibility: hidden;}
 [data-testid="stToolbar"] {visibility: hidden;}
 [data-testid="stDecoration"] {visibility: hidden;}
+
+/* Highlight Total column header */
+.total-highlight {
+    background-color: #2a2a3e;
+    font-weight: bold;
+    color: #FFD700;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -37,7 +44,7 @@ ROLE_LABELS = {
 }
 BISHOP_ROLES = ["bishop1", "bishop2", "bishop3"]
 BISHOP_COLS  = {"bishop1": "panel1_score", "bishop2": "panel2_score", "bishop3": "panel3_score"}
-ADMIN_ROLES  = ["admin"]          # excluded from leaderboard/stats
+ADMIN_ROLES  = ["admin"]
 ALL_ROLES    = ["player", "bishop1", "bishop2", "bishop3", "knight", "bp_manager", "admin"]
 
 # ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -45,7 +52,6 @@ def get_all_users():
     return db().table("users").select("*").execute().data or []
 
 def get_playing_users():
-    """Everyone except King (admin)"""
     return [u for u in get_all_users() if u["role"] not in ADMIN_ROLES]
 
 def get_user_display(username):
@@ -84,6 +90,25 @@ def get_player_streak_points(username):
         except: pass
     return round(total, 2)
 
+def get_player_exact_points(username):
+    """Count extra points from exact predictions (exact gives +6 vs closest +4, so +2 extra)"""
+    total = 0
+    preds = db().table("predictions").select("*").eq("player", username).execute().data or []
+    for p in preds:
+        if p.get("actual_score") is not None:
+            if int(p.get("predicted_score") or 0) == int(p.get("actual_score") or -1):
+                total += 2  # the extra 2 points on top of closest +4
+    return round(total, 2)
+
+def get_player_exact_count(username):
+    count = 0
+    preds = db().table("predictions").select("*").eq("player", username).execute().data or []
+    for p in preds:
+        if p.get("actual_score") is not None:
+            if int(p.get("predicted_score") or 0) == int(p.get("actual_score") or -1):
+                count += 1
+    return count
+
 def get_player_season_points(username):
     total = 0
     for s in db().table("season_predictions").select("points_awarded").eq("player", username).execute().data or []:
@@ -112,6 +137,11 @@ def get_current_streak(username):
         if my_diff == min_diff: streak += 1
         else: break
     return streak
+
+def streak_bonus_for(streak_count):
+    """Bonus points for nth consecutive win — keeps going forever"""
+    if streak_count < 2: return 0
+    return streak_count - 1  # 2→+1, 3→+2, 4→+3, 5→+4 ... forever
 
 def login(username, password):
     res = db().table("users").select("*").eq("username", username).eq("password", password).execute()
@@ -146,15 +176,15 @@ def award_sp_points(match_sel, actual_score, actual_wickets, actual_winner):
     winners  = [p for p in preds if p["diff"] == min_diff]
 
     for p in preds:
-        pts        = 0
-        is_winner  = p["diff"] == min_diff
-        is_exact   = int(p.get("predicted_score") or 0) == actual_score
-        corr_win   = caps(p.get("predicted_winner","")) == actual_winner
-        corr_wkt   = int(p.get("predicted_wickets") or -1) == actual_wickets
+        pts       = 0
+        is_winner = p["diff"] == min_diff
+        is_exact  = int(p.get("predicted_score") or 0) == actual_score
+        corr_win  = caps(p.get("predicted_winner","")) == actual_winner
+        corr_wkt  = int(p.get("predicted_wickets") or -1) == actual_wickets
 
-        if is_exact:   pts += 6
+        if is_exact:    pts += 6
         elif is_winner: pts += 4
-        if corr_win:   pts += 2
+        if corr_win:    pts += 2
         if is_winner and corr_wkt: pts += 1
 
         db().table("predictions").update({
@@ -162,11 +192,11 @@ def award_sp_points(match_sel, actual_score, actual_wickets, actual_winner):
             "actual_winner": actual_winner, "points_awarded": pts
         }).eq("id", p["id"]).execute()
 
-    # Streak bonuses
+    # Extended streak bonuses — keeps going forever
     for w in winners:
         uname  = w["player"]
         streak = get_current_streak(uname)
-        bonus  = 3 if streak >= 4 else 2 if streak == 3 else 1 if streak == 2 else 0
+        bonus  = streak_bonus_for(streak)
         if bonus > 0:
             db().table("streaks").insert({
                 "player": uname, "match_name": match_sel,
@@ -185,20 +215,46 @@ def page_leaderboard():
     if not users:
         st.info("No players yet.")
         return
+
     rows = []
     for u in users:
-        uname = u["username"]
+        uname  = u["username"]
         sp     = get_player_sp_points(uname)
         bp     = get_player_bp_points(uname)
         streak = get_player_streak_points(uname)
+        exact  = get_player_exact_count(uname)
         total  = round(sp + bp + streak, 2)
-        rows.append({"Rank": "", "Player": u["display_name"],
-                     "SP Pts": sp, "BP Pts": bp, "Streak Pts": streak, "Total": total})
+        cur_streak = get_current_streak(uname)
+        rows.append({
+            "Rank":        "",
+            "Player":      u["display_name"],
+            "SP Pts":      sp,
+            "BP Pts":      bp,
+            "Streak Pts":  streak,
+            "⚡ Exact":    f"{exact}x" if exact > 0 else "-",
+            "🔥 Streak":   f"{cur_streak} 🔥" if cur_streak > 1 else str(cur_streak),
+            "Total":       total
+        })
+
     rows.sort(key=lambda x: x["Total"], reverse=True)
     medals = ["🥇","🥈","🥉"]
     for i, r in enumerate(rows):
         r["Rank"] = medals[i] if i < 3 else str(i+1)
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+    df = pd.DataFrame(rows)
+
+    # Style the dataframe — highlight Total and Player columns
+    def style_df(df):
+        styles = pd.DataFrame("", index=df.index, columns=df.columns)
+        styles["Total"]  = "background-color: #1e2a1e; color: #00ff88; font-weight: bold"
+        styles["Player"] = "background-color: #1a1a2e; font-weight: bold"
+        return styles
+
+    st.dataframe(
+        df.style.apply(style_df, axis=None),
+        use_container_width=True,
+        hide_index=True
+    )
 
 
 def page_submit_bp():
@@ -279,15 +335,12 @@ def page_bp_approvals():
     for bp in pending:
         bp_player      = bp["player"]
         bp_player_role = get_user_role(bp_player)
-        # Queen approves only Pawns' BPs (not own, not Bishops, not Knight)
         if role == "bp_manager":
             if bp_player == username: continue
             if bp_player_role in BISHOP_ROLES + ["knight","bp_manager","admin"]: continue
-        # Knight approves Queen's and Bishops' BPs
         if role == "knight":
             if bp_player_role not in ["bp_manager"] + BISHOP_ROLES: continue
         shown += 1
-        # Queen & King see name; Knight sees hidden
         if role in ["bp_manager","admin"]:
             label = f"**🏏 {bp['match_name']}** — **{get_user_display(bp_player)}**: {bp['prediction']}"
         else:
@@ -318,7 +371,6 @@ def page_panel_scoring():
         st.success("No BPs to rate!")
         return
 
-    # Knight rates Bishops' BPs (blind)
     if role == "knight":
         to_rate = []
         for bp in approved:
@@ -340,7 +392,6 @@ def page_panel_scoring():
             st.markdown("---")
         return
 
-    # Bishops rate Pawns' BPs (blind, not own)
     if role in BISHOP_ROLES:
         col_name = BISHOP_COLS[role]
         unrated  = [bp for bp in approved
@@ -361,7 +412,6 @@ def page_panel_scoring():
             st.markdown("---")
         return
 
-    # King sees everything
     if role == "admin":
         unrated = [bp for bp in approved if bp.get("panel1_score") is None]
         if not unrated:
@@ -369,7 +419,7 @@ def page_panel_scoring():
             return
         for bp in unrated:
             st.markdown(f"**🏏 {bp['match_name']}** — **{get_user_display(bp['player'])}**: {bp['prediction']}")
-            score = st.radio("Rating (P1 slot):", [0,1,2,3], horizontal=True, key=f"admin_{bp['id']}")
+            score = st.radio("Rating (P1):", [0,1,2,3], horizontal=True, key=f"admin_{bp['id']}")
             if st.button("Submit", key=f"admin_rate_{bp['id']}"):
                 submit_panel_score(bp, "panel1_score", score)
                 st.rerun()
@@ -414,9 +464,9 @@ def page_enter_results():
     if not pending:
         st.info("No matches waiting for results.")
         return
-    match_sel      = st.selectbox("Select Match", [m["match_name"] for m in pending])
-    actual_score   = st.number_input("Actual Score (runs)", min_value=0, max_value=500, step=1)
-    actual_wickets = st.number_input("Actual Wickets", min_value=0, max_value=10, step=1)
+    match_sel         = st.selectbox("Select Match", [m["match_name"] for m in pending])
+    actual_score      = st.number_input("Actual Score (runs)", min_value=0, max_value=500, step=1)
+    actual_wickets    = st.number_input("Actual Wickets", min_value=0, max_value=10, step=1)
     actual_winner_raw = st.text_input("Actual Winner (team name)")
     actual_winner     = caps(actual_winner_raw)
     if actual_winner:
@@ -459,25 +509,28 @@ def page_match_details():
     if not matches:
         st.info("No matches yet.")
         return
-    selected = st.selectbox("Select Match", [m["match_name"] for m in matches])
-    m = next((x for x in matches if x["match_name"] == selected), None)
-    if not m: return
-    st.markdown(f"### 🏏 {m['match_name']} — {m.get('match_date','')}")
+
+    # Add match number
+    match_options = [f"Match {i+1} — {m['match_name']}" for i, m in enumerate(matches)]
+    selected_idx  = st.selectbox("Select Match", range(len(matches)), format_func=lambda i: match_options[i])
+    m = matches[selected_idx]
+
+    st.markdown(f"### 🏏 Match {selected_idx+1} — {m['match_name']} | {m.get('match_date','')}")
     col1, col2, col3 = st.columns(3)
     col1.metric("BP",     "🔒 Locked" if m.get("bp_locked") else "🟢 Open")
     col2.metric("SP",     "🔒 Locked" if m.get("sp_locked") else "🟢 Open")
     col3.metric("Status", m.get("status","open").upper())
+
     if m.get("actual_score"):
         st.success(f"**Result:** {m.get('actual_winner')} won | {m.get('actual_score')} runs - {str(m.get('actual_wickets',0)).zfill(2)} wkts")
     if m.get("bp_locked"):
         st.caption(f"🔒 BP locked by {get_user_display(m.get('bp_locked_by',''))} at {m.get('bp_locked_at','')}")
     if m.get("sp_locked"):
         st.caption(f"🔒 SP locked by {get_user_display(m.get('sp_locked_by',''))} at {m.get('sp_locked_at','')}")
-    st.markdown("---")
 
-    # BPs table
+    st.markdown("---")
     st.subheader("📝 Bold Predictions")
-    bps = db().table("bps").select("*").eq("match_name", selected).execute().data or []
+    bps = db().table("bps").select("*").eq("match_name", m["match_name"]).execute().data or []
     if bps:
         bp_rows = []
         for bp in bps:
@@ -491,23 +544,22 @@ def page_match_details():
         st.dataframe(pd.DataFrame(bp_rows), use_container_width=True, hide_index=True)
     else:
         st.info("No BPs for this match.")
-    st.markdown("---")
 
-    # SPs table
+    st.markdown("---")
     st.subheader("🔮 Score Predictions")
-    preds = db().table("predictions").select("*").eq("match_name", selected).execute().data or []
+    preds = db().table("predictions").select("*").eq("match_name", m["match_name"]).execute().data or []
     if preds:
         preds_sorted = sorted(preds, key=lambda x: x.get("points_awarded",0), reverse=True)
         sp_rows = []
         for i, p in enumerate(preds_sorted):
             rank  = "🥇" if i==0 and (p.get("points_awarded") or 0) >= 4 else ""
-            exact = "⚡ Exact!" if m.get("actual_score") and int(p.get("predicted_score") or 0) == m.get("actual_score") else ""
+            exact = "⚡" if m.get("actual_score") and int(p.get("predicted_score") or 0) == m.get("actual_score") else ""
             sp_rows.append({
                 "": rank, "Player": get_user_display(p["player"]),
-                "Predicted Score": f"{p.get('predicted_score')} - {str(p.get('predicted_wickets',0)).zfill(2)}",
-                "Predicted Winner": p.get("predicted_winner","-"),
-                "Actual Score": f"{m.get('actual_score','-')} - {str(m.get('actual_wickets',0)).zfill(2)}" if m.get("actual_score") else "-",
-                "Exact?": exact, "Pts": p.get("points_awarded",0)
+                "Predicted": f"{p.get('predicted_score')} - {str(p.get('predicted_wickets',0)).zfill(2)}",
+                "Winner Pick": p.get("predicted_winner","-"),
+                "Actual": f"{m.get('actual_score')} - {str(m.get('actual_wickets',0)).zfill(2)}" if m.get("actual_score") else "-",
+                "⚡ Exact?": exact, "Pts": p.get("points_awarded",0)
             })
         st.dataframe(pd.DataFrame(sp_rows), use_container_width=True, hide_index=True)
     else:
@@ -521,7 +573,9 @@ def page_stats():
     if not users:
         st.info("No players yet.")
         return
+
     selected = st.selectbox("Select Player", ["— Overall —"] + [u["display_name"] for u in users])
+
     if selected == "— Overall —":
         rows = []
         for u in users:
@@ -529,54 +583,122 @@ def page_stats():
             bps   = db().table("bps").select("*").eq("player", uname).execute().data or []
             preds = db().table("predictions").select("*").eq("player", uname).execute().data or []
             rows.append({
-                "Player":    u["display_name"],
-                "Total":     get_player_total_points(uname),
-                "SP Pts":    get_player_sp_points(uname),
-                "BP Pts":    get_player_bp_points(uname),
-                "Streak Pts":get_player_streak_points(uname),
-                "BPs ✅":    len([b for b in bps if b.get("result")=="correct"]),
-                "BPs ❌":    len([b for b in bps if b.get("result")=="wrong"]),
-                "SP Played": len([p for p in preds if p.get("actual_score") is not None]),
-                "Streak 🔥": get_current_streak(uname)
+                "Player":      u["display_name"],
+                "Total":       get_player_total_points(uname),
+                "SP Pts":      get_player_sp_points(uname),
+                "BP Pts":      get_player_bp_points(uname),
+                "Streak Pts":  get_player_streak_points(uname),
+                "⚡ Exacts":   get_player_exact_count(uname),
+                "BPs ✅":      len([b for b in bps if b.get("result")=="correct"]),
+                "BPs ❌":      len([b for b in bps if b.get("result")=="wrong"]),
+                "SP Played":   len([p for p in preds if p.get("actual_score") is not None]),
+                "🔥 Streak":   get_current_streak(uname)
             })
         rows.sort(key=lambda x: x["Total"], reverse=True)
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
     else:
         u = next((u for u in users if u["display_name"] == selected), None)
         if not u: return
-        uname = u["username"]
-        col1,col2,col3,col4 = st.columns(4)
-        col1.metric("Total",      get_player_total_points(uname))
-        col2.metric("SP Pts",     get_player_sp_points(uname))
-        col3.metric("BP Pts",     get_player_bp_points(uname))
-        col4.metric("Streak Pts", get_player_streak_points(uname))
-        streak = get_current_streak(uname)
-        if streak > 1:
-            st.markdown(f"🔥 **Current Streak: {streak} wins in a row!**")
+        uname  = u["username"]
+        total  = get_player_total_points(uname)
+        sp_pts = get_player_sp_points(uname)
+        bp_pts = get_player_bp_points(uname)
+        streak_pts = get_player_streak_points(uname)
+        cur_streak = get_current_streak(uname)
+        exact_count = get_player_exact_count(uname)
+
+        # ── Dashboard header ──
+        st.markdown(f"## {u['display_name']}")
+        col1, col2, col3, col4, col5 = st.columns(5)
+        col1.metric("🏆 Total",    total)
+        col2.metric("🔮 SP Pts",   sp_pts)
+        col3.metric("📝 BP Pts",   bp_pts)
+        col4.metric("🔥 Streak Pts", streak_pts)
+        col5.metric("⚡ Exact Predictions", exact_count)
+
+        if cur_streak > 1:
+            st.success(f"🔥 Active streak: **{cur_streak} wins in a row!** (+{streak_bonus_for(cur_streak+1)} next win)")
+
         st.markdown("---")
-        st.subheader("📝 Bold Predictions")
-        bps = db().table("bps").select("*").eq("player", uname).execute().data or []
-        if bps:
-            st.dataframe(pd.DataFrame([{
-                "Match": b["match_name"], "Prediction": b["prediction"],
-                "Avg Panel": b.get("avg_score","Pending"),
-                "Result": b.get("result","pending"), "Pts": b.get("points_awarded",0)
-            } for b in bps]), use_container_width=True, hide_index=True)
+
+        # ── Points breakdown chart ──
+        st.subheader("📊 Points Breakdown")
+        if total > 0:
+            chart_data = pd.DataFrame({
+                "Category": ["SP Points", "BP Points", "Streak Points"],
+                "Points":   [sp_pts, bp_pts, streak_pts]
+            })
+            st.bar_chart(chart_data.set_index("Category"))
         else:
-            st.info("No BPs yet.")
+            st.info("No points yet.")
+
         st.markdown("---")
-        st.subheader("🔮 Score Predictions")
+
+        # ── Match by match SP history ──
+        st.subheader("🔮 Score Prediction History")
         preds = db().table("predictions").select("*").eq("player", uname).execute().data or []
+        matches = db().table("matches").select("*").execute().data or []
+        match_map = {m["match_name"]: i+1 for i, m in enumerate(matches)}
+
         if preds:
-            st.dataframe(pd.DataFrame([{
-                "Match":    p["match_name"],
-                "Predicted": f"{p.get('predicted_score')} - {str(p.get('predicted_wickets',0)).zfill(2)}",
-                "Winner":   p.get("predicted_winner","-"),
-                "Actual":   f"{p.get('actual_score')} - {str(p.get('actual_wickets',0)).zfill(2)}" if p.get("actual_score") else "Pending",
-                "Pts":      p.get("points_awarded",0)
-            } for p in preds]), use_container_width=True, hide_index=True)
+            sp_rows = []
+            for p in preds:
+                exact = "⚡ Yes" if p.get("actual_score") and int(p.get("predicted_score") or 0) == int(p.get("actual_score") or -1) else ""
+                match_num = match_map.get(p["match_name"], "?")
+                sp_rows.append({
+                    "Match #":   f"#{match_num}",
+                    "Match":     p["match_name"],
+                    "Predicted": f"{p.get('predicted_score')} - {str(p.get('predicted_wickets',0)).zfill(2)}",
+                    "Winner":    p.get("predicted_winner","-"),
+                    "Actual":    f"{p.get('actual_score')} - {str(p.get('actual_wickets',0)).zfill(2)}" if p.get("actual_score") else "Pending",
+                    "⚡ Exact?": exact,
+                    "Pts":       p.get("points_awarded",0)
+                })
+            st.dataframe(pd.DataFrame(sp_rows), use_container_width=True, hide_index=True)
         else:
             st.info("No predictions yet.")
+
+        st.markdown("---")
+
+        # ── BP history ──
+        st.subheader("📝 Bold Prediction History")
+        bps = db().table("bps").select("*").eq("player", uname).execute().data or []
+        if bps:
+            bp_rows = []
+            for b in bps:
+                icon = "✅" if b.get("result")=="correct" else "❌" if b.get("result")=="wrong" else "⏳"
+                match_num = match_map.get(b["match_name"], "?")
+                bp_rows.append({
+                    "Match #":    f"#{match_num}",
+                    "Match":      b["match_name"],
+                    "Prediction": b["prediction"],
+                    "Avg Panel":  b.get("avg_score","Pending"),
+                    "Result":     icon,
+                    "Pts":        b.get("points_awarded",0)
+                })
+            st.dataframe(pd.DataFrame(bp_rows), use_container_width=True, hide_index=True)
+        else:
+            st.info("No BPs yet.")
+
+        st.markdown("---")
+
+        # ── Streak history ──
+        st.subheader("🔥 Streak Bonus History")
+        streaks = db().table("streaks").select("*").eq("player", uname).execute().data or []
+        if streaks:
+            s_rows = []
+            for s in streaks:
+                match_num = match_map.get(s["match_name"], "?")
+                s_rows.append({
+                    "Match #":  f"#{match_num}",
+                    "Match":    s["match_name"],
+                    "Streak":   f"{s.get('streak_count')} in a row",
+                    "Bonus Pts":s.get("bonus_points",0)
+                })
+            st.dataframe(pd.DataFrame(s_rows), use_container_width=True, hide_index=True)
+        else:
+            st.info("No streak bonuses yet.")
 
 
 def page_season_predictions():
@@ -584,6 +706,7 @@ def page_season_predictions():
     st.markdown("---")
     user     = st.session_state.user
     username = user["username"]
+
     if user["role"] == "guest":
         results = db().table("season_predictions").select("*").execute().data or []
         if results:
@@ -598,6 +721,7 @@ def page_season_predictions():
         else:
             st.info("No season predictions yet.")
         return
+
     existing = db().table("season_predictions").select("*").eq("player", username).execute().data or []
     if existing:
         sp = existing[0]
@@ -608,6 +732,7 @@ def page_season_predictions():
         st.write(f"🏏 Top 4: {sp.get('top1')} → {sp.get('top2')} → {sp.get('top3')} → {sp.get('top4')}")
         st.write(f"**Points: {sp.get('points_awarded','Pending')}**")
         return
+
     st.markdown("**Points:** Orange Cap=20 | Purple Cap=20 | Emerging=15 | Top4 team=6 (+4 if position correct)")
     oc = st.text_input("🧡 Orange Cap (top run scorer)")
     pc = st.text_input("💜 Purple Cap (top wicket taker)")
@@ -655,10 +780,14 @@ def page_how_to_score():
     st.markdown("---")
     st.subheader("🔥 Streak Points (SP wins only)")
     st.markdown("""
+- Consecutive SP wins keep rewarding you!
 - Win 2 in a row → **+1 bonus**
 - Win 3 in a row → **+2 bonus**
-- Win 4+ in a row → **+3 bonus**
-- Streak resets if you don't win
+- Win 4 in a row → **+3 bonus**
+- Win 5 in a row → **+4 bonus**
+- Win 6 in a row → **+5 bonus**
+- ...keeps going forever!
+- Streak **resets** if you don't win an SP
 """)
     st.markdown("---")
     st.subheader("🌟 Season Predictions")
@@ -699,10 +828,11 @@ def page_admin():
                 st.success("✅ Match added!")
                 st.rerun()
         st.markdown("---")
-        for m in (db().table("matches").select("*").execute().data or []):
+        matches = db().table("matches").select("*").execute().data or []
+        for i, m in enumerate(matches):
             bp = "🔒" if m.get("bp_locked") else "🟢"
             sp = "🔒" if m.get("sp_locked") else "🟢"
-            st.write(f"🏏 **{m['match_name']}** | {m.get('match_date','')} | BP:{bp} SP:{sp} | {m.get('status','open')}")
+            st.write(f"**#{i+1}** 🏏 **{m['match_name']}** | {m.get('match_date','')} | BP:{bp} SP:{sp} | {m.get('status','open')}")
 
     with tab2:
         role_labels_map = {r: ROLE_LABELS.get(r, r) for r in ALL_ROLES}
@@ -755,8 +885,8 @@ def page_admin():
                        "t1":caps(t1),"t2":caps(t2),"t3":caps(t3),"t4":caps(t4)}
             for sp in (db().table("season_predictions").select("*").execute().data or []):
                 pts = 0
-                if sp.get("orange_cap","").upper()    == actuals["oc"]: pts += 20
-                if sp.get("purple_cap","").upper()    == actuals["pc"]: pts += 20
+                if sp.get("orange_cap","").upper()     == actuals["oc"]: pts += 20
+                if sp.get("purple_cap","").upper()     == actuals["pc"]: pts += 20
                 if sp.get("emerging_player","").upper()== actuals["em"]: pts += 15
                 actual_top4 = [actuals["t1"],actuals["t2"],actuals["t3"],actuals["t4"]]
                 pred_top4   = [sp.get("top1","").upper(),sp.get("top2","").upper(),
@@ -778,7 +908,6 @@ def main():
     if "user" not in st.session_state:
         st.session_state.user = None
 
-    # ── Login page ──
     if st.session_state.user is None:
         st.title("🏏 LFxCT")
         st.markdown("---")
@@ -803,7 +932,6 @@ def main():
     user = st.session_state.user
     role = user["role"]
 
-    # ── Sidebar ──
     with st.sidebar:
         role_label = ROLE_LABELS.get(role, role)
         st.markdown(f"### 👋 {user['display_name']}")
@@ -830,7 +958,6 @@ def main():
         page = st.radio("Navigation", pages)
         st.markdown("---")
 
-        # Back to login for guests
         if role == "guest":
             if st.button("🔙 Back to Login", use_container_width=True):
                 st.session_state.user = None
@@ -840,7 +967,6 @@ def main():
                 st.session_state.user = None
                 st.rerun()
 
-    # ── Routing ──
     if   page == "🏆 Leaderboard":       page_leaderboard()
     elif page == "📝 Submit BP":          page_submit_bp()
     elif page == "🔮 Score Prediction":   page_submit_sp()
