@@ -22,9 +22,22 @@ footer {visibility: hidden;}
 header {visibility: hidden;}
 [data-testid="stToolbar"] {visibility: hidden;}
 [data-testid="stDecoration"] {visibility: hidden;}
-div.stButton > button {
-    width: 100%;
-    border-radius: 8px;
+
+/* Make sidebar always collapsed on mobile */
+@media (max-width: 768px) {
+    [data-testid="stSidebar"] {
+        display: none !important;
+    }
+}
+
+/* Style the mobile nav selectbox */
+.mobile-nav {
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    background-color: #0e1117;
+    padding: 8px 0;
+    border-bottom: 1px solid #333;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -151,9 +164,8 @@ def get_current_streak(username):
         else: break
     return streak
 
-def streak_bonus_for(streak_count):
-    if streak_count < 2: return 0
-    return streak_count - 1
+def streak_bonus_for(n):
+    return max(0, n - 1)
 
 def login(username, password):
     res = db().table("users").select("*").eq("username", username).eq("password", password).execute()
@@ -208,118 +220,27 @@ def award_sp_points(match_sel, actual_score, actual_wickets, actual_winner):
                 "streak_count": streak, "bonus_points": bonus
             }).execute()
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-# NEW TEMPLATE BP PAGE
-# ══════════════════════════════════════════════════════════════════════════════
-
-def page_template_bp():
-    st.title("🎯 Bold Prediction (New)")
-    st.markdown("##### Pick a template, fill in the blank, submit!")
-    st.markdown("✅ Correct → **+3 pts** | ❌ Wrong → **-1 pt**")
-    st.markdown("---")
-
-    matches = [m for m in (db().table("matches").select("*").execute().data or []) if not m.get("bp_locked")]
-    if not matches:
-        st.warning("⏳ No open matches right now.")
-        return
-
-    match = st.selectbox("Select Match", [m["match_name"] for m in matches])
-
-    # Check if already submitted
-    existing = db().table("template_bps").select("*").eq("player", st.session_state.user["username"]).eq("match_name", match).execute().data or []
-    if existing:
-        b = existing[0]
-        icon = "✅" if b.get("result") == "correct" else "❌" if b.get("result") == "wrong" else "⏳"
-        st.warning("✅ You already submitted a BP for this match!")
-        st.info(f"{icon} **{b['prediction_text']}** | Status: {b.get('result','pending')} | Pts: {b.get('points_awarded',0)}")
-        return
-
-    st.markdown("### Choose your prediction:")
-    st.markdown("")
-
-    # Template picker
-    template_options = {f"{t[1].replace('{name}', '______')}": t[0] for t in BP_TEMPLATES}
-    selected_label = st.radio(
-        "Select a template:",
-        list(template_options.keys()),
-        label_visibility="collapsed"
-    )
-    selected_key = template_options[selected_label]
-    selected_template = next(t[1] for t in BP_TEMPLATES if t[0] == selected_key)
-
-    st.markdown("---")
-    st.markdown("### Fill in the blank:")
-
-    # Show the template with input
-    if "{name}" in selected_template:
-        col1, col2 = st.columns([3, 2])
-        with col1:
-            fill_in = st.text_input(
-                "Player / Team name:",
-                placeholder="e.g. Kohli, SRH, Bumrah..."
-            )
-        with col2:
-            if fill_in:
-                preview = selected_template.replace("{name}", f"**{fill_in.strip()}**")
-                st.markdown(f"📋 Preview:")
-                st.markdown(f"*{preview}*")
-
-    st.markdown("---")
-    if st.button("🚀 Submit BP", use_container_width=True):
-        if not fill_in or not fill_in.strip():
-            st.error("Please fill in the blank!")
-        else:
-            final_text = selected_template.replace("{name}", fill_in.strip())
-            db().table("template_bps").insert({
-                "match_name": match,
-                "player": st.session_state.user["username"],
-                "template_key": selected_key,
-                "fill_in": fill_in.strip(),
-                "prediction_text": final_text,
-                "status": "pending",
-                "points_awarded": 0,
-                "submitted_at": datetime.now().strftime("%Y-%m-%d %H:%M")
-            }).execute()
-            st.success(f"✅ Submitted: **{final_text}**")
-            st.balloons()
-
-
-def page_template_bp_results():
-    st.title("📝 Mark Template BP Results")
-    st.markdown("---")
-    pending = db().table("template_bps").select("*").eq("status","pending").execute().data or []
-    if not pending:
-        st.info("No template BPs waiting for results.")
-        return
-
-    # Group by match
-    matches = list(set(b["match_name"] for b in pending))
-    selected_match = st.selectbox("Filter by Match", ["All"] + matches)
-    filtered = pending if selected_match == "All" else [b for b in pending if b["match_name"] == selected_match]
-
-    for b in filtered:
-        display = get_user_display(b["player"])
-        st.markdown(f"**{display}** — {b['match_name']}")
-        st.markdown(f"🎯 *{b['prediction_text']}*")
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button(f"✅ Correct (+3 pts)", key=f"tc_{b['id']}"):
-                db().table("template_bps").update({
-                    "result": "correct", "points_awarded": 3, "status": "done"
-                }).eq("id", b["id"]).execute()
-                st.rerun()
-        with col2:
-            if st.button(f"❌ Wrong (-1 pt)", key=f"tw_{b['id']}"):
-                db().table("template_bps").update({
-                    "result": "wrong", "points_awarded": -1, "status": "done"
-                }).eq("id", b["id"]).execute()
-                st.rerun()
-        st.markdown("---")
+def get_pages(role):
+    if role == "guest":
+        return ["🏆 Leaderboard","📊 Stats","📋 Match Details","📖 How to Score","🌟 Season Predictions"]
+    pages = ["🏆 Leaderboard","📊 Stats","📋 Match Details","📖 How to Score",
+             "🌟 Season Predictions","🎯 Bold Prediction","🔮 Score Prediction"]
+    if role in ["bp_manager","knight","admin"]:
+        pages.append("✅ Approve BPs")
+    if role in BISHOP_ROLES + ["knight","admin"]:
+        pages.append("⭐ Rate BPs")
+    if role in BISHOP_ROLES + ["bp_manager","admin"]:
+        pages.append("🔒 Lock BP/SP")
+    if role in ["bp_manager","admin"]:
+        pages.append("🏆 Enter Results")
+        pages.append("📝 BP Results")
+    if role == "admin":
+        pages.append("⚙️ King's Panel")
+    return pages
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# EXISTING PAGES
+# PAGES
 # ══════════════════════════════════════════════════════════════════════════════
 
 def page_leaderboard():
@@ -333,17 +254,16 @@ def page_leaderboard():
     for u in users:
         uname  = u["username"]
         sp     = get_player_sp_points(uname)
-        bp     = get_player_bp_points(uname)
-        tbp    = get_player_template_bp_points(uname)
+        bp     = round(get_player_bp_points(uname) + get_player_template_bp_points(uname), 2)
         streak = get_player_streak_points(uname)
         exact  = get_player_exact_count(uname)
-        total  = round(sp + bp + tbp + streak, 2)
+        total  = round(sp + bp + streak, 2)
         cur_streak = get_current_streak(uname)
         rows.append({
             "Rank":       "",
             "Player":     u["display_name"],
             "SP Pts":     sp,
-            "BP Pts":     round(bp + tbp, 2),
+            "BP Pts":     bp,
             "Streak Pts": streak,
             "⚡ Exact":   f"{exact}x" if exact > 0 else "-",
             "🔥 Streak":  f"{cur_streak} 🔥" if cur_streak > 1 else str(cur_streak),
@@ -360,6 +280,52 @@ def page_leaderboard():
         styles["Player"] = "background-color: #1a1a2e; font-weight: bold"
         return styles
     st.dataframe(df.style.apply(style_df, axis=None), use_container_width=True, hide_index=True)
+
+
+def page_template_bp():
+    st.title("🎯 Bold Prediction")
+    st.markdown("##### Pick a template, fill in the blank, submit!")
+    st.markdown("✅ Correct → **+3 pts** | ❌ Wrong → **-1 pt**")
+    st.markdown("---")
+    matches = [m for m in (db().table("matches").select("*").execute().data or []) if not m.get("bp_locked")]
+    if not matches:
+        st.warning("⏳ No open matches for BP submission.")
+        return
+    match = st.selectbox("Select Match", [m["match_name"] for m in matches])
+    existing = db().table("template_bps").select("*").eq("player", st.session_state.user["username"]).eq("match_name", match).execute().data or []
+    if existing:
+        b = existing[0]
+        icon = "✅" if b.get("result") == "correct" else "❌" if b.get("result") == "wrong" else "⏳"
+        st.warning("✅ Already submitted!")
+        st.info(f"{icon} **{b['prediction_text']}** | Status: {b.get('result','pending')} | Pts: {b.get('points_awarded',0)}")
+        return
+    template_options = {f"{t[1].replace('{name}', '______')}": t[0] for t in BP_TEMPLATES}
+    selected_label = st.radio("Select a template:", list(template_options.keys()), label_visibility="collapsed")
+    selected_key = template_options[selected_label]
+    selected_template = next(t[1] for t in BP_TEMPLATES if t[0] == selected_key)
+    st.markdown("---")
+    st.markdown("### Fill in the blank:")
+    col1, col2 = st.columns([3,2])
+    with col1:
+        fill_in = st.text_input("Player / Team name:", placeholder="e.g. Kohli, SRH, Bumrah...")
+    with col2:
+        if fill_in:
+            st.markdown(f"📋 Preview:")
+            st.markdown(f"*{selected_template.replace('{name}', f'**{fill_in.strip()}**')}*")
+    st.markdown("---")
+    if st.button("🚀 Submit BP", use_container_width=True):
+        if not fill_in or not fill_in.strip():
+            st.error("Please fill in the blank!")
+        else:
+            final_text = selected_template.replace("{name}", fill_in.strip())
+            db().table("template_bps").insert({
+                "match_name": match, "player": st.session_state.user["username"],
+                "template_key": selected_key, "fill_in": fill_in.strip(),
+                "prediction_text": final_text, "status": "pending",
+                "points_awarded": 0, "submitted_at": datetime.now().strftime("%Y-%m-%d %H:%M")
+            }).execute()
+            st.success(f"✅ Submitted: **{final_text}**")
+            st.balloons()
 
 
 def page_submit_sp():
@@ -386,7 +352,7 @@ def page_submit_sp():
         if predicted_winner:
             st.caption(f"Team: **{predicted_winner}**")
     st.caption(f"Your prediction: **{predicted_score} runs - {str(predicted_wickets).zfill(2)} wkts**")
-    if st.button("🚀 Submit"):
+    if st.button("🚀 Submit", use_container_width=True):
         if not predicted_winner:
             st.error("Enter the winner!")
         else:
@@ -406,9 +372,6 @@ def page_bp_approvals():
     role     = user["role"]
     username = user["username"]
     pending  = db().table("bps").select("*").eq("status","pending").execute().data or []
-    if not pending:
-        st.success("🎉 No pending BPs!")
-        return
     shown = 0
     for bp in pending:
         bp_player      = bp["player"]
@@ -419,10 +382,7 @@ def page_bp_approvals():
         if role == "knight":
             if bp_player_role not in ["bp_manager"] + BISHOP_ROLES: continue
         shown += 1
-        if role in ["bp_manager","admin"]:
-            label = f"**🏏 {bp['match_name']}** — **{get_user_display(bp_player)}**: {bp['prediction']}"
-        else:
-            label = f"**🏏 {bp['match_name']}** — **[Hidden]**: {bp['prediction']}"
+        label = f"**🏏 {bp['match_name']}** — **{get_user_display(bp_player) if role in ['bp_manager','admin'] else '[Hidden]'}**: {bp['prediction']}"
         st.markdown(label)
         st.caption(f"Submitted: {bp.get('submitted_at','')}")
         col1, col2 = st.columns(2)
@@ -449,12 +409,10 @@ def page_panel_scoring():
         st.success("No BPs to rate!")
         return
     if role == "knight":
-        to_rate = []
-        for bp in approved:
-            bpr  = get_user_role(bp["player"])
-            slot = BISHOP_COLS.get(bpr)
-            if bpr in BISHOP_ROLES and slot and bp.get(slot) is None:
-                to_rate.append((bp, slot))
+        to_rate = [(bp, BISHOP_COLS[get_user_role(bp["player"])]) for bp in approved
+                   if get_user_role(bp["player"]) in BISHOP_ROLES
+                   and BISHOP_COLS.get(get_user_role(bp["player"])) is not None
+                   and bp.get(BISHOP_COLS.get(get_user_role(bp["player"]))) is None]
         if not to_rate:
             st.success("Nothing to rate!")
             return
@@ -462,16 +420,14 @@ def page_panel_scoring():
             st.markdown(f"**🏏 {bp['match_name']}** — **[Hidden]**: {bp['prediction']}")
             score = st.radio("Rating:", [0,1,2,3], horizontal=True, key=f"knight_{bp['id']}")
             st.caption("0=Too easy | 1=Moderate | 2=Risky | 3=Very risky")
-            if st.button("Submit Rating", key=f"knight_rate_{bp['id']}"):
+            if st.button("Submit", key=f"knight_rate_{bp['id']}"):
                 submit_panel_score(bp, slot, score)
-                st.success("Rating submitted!")
                 st.rerun()
             st.markdown("---")
         return
     if role in BISHOP_ROLES:
         col_name = BISHOP_COLS[role]
-        unrated  = [bp for bp in approved
-                    if bp["player"] != username
+        unrated  = [bp for bp in approved if bp["player"] != username
                     and get_user_role(bp["player"]) not in BISHOP_ROLES
                     and bp.get(col_name) is None]
         if not unrated:
@@ -481,9 +437,8 @@ def page_panel_scoring():
             st.markdown(f"**🏏 {bp['match_name']}** — **[Hidden]**: {bp['prediction']}")
             score = st.radio("Rating:", [0,1,2,3], horizontal=True, key=f"score_{bp['id']}")
             st.caption("0=Too easy | 1=Moderate | 2=Risky | 3=Very risky")
-            if st.button("Submit Rating", key=f"rate_{bp['id']}"):
+            if st.button("Submit", key=f"rate_{bp['id']}"):
                 submit_panel_score(bp, col_name, score)
-                st.success("Rating submitted!")
                 st.rerun()
             st.markdown("---")
         return
@@ -502,13 +457,14 @@ def page_panel_scoring():
 
 
 def page_lock_match():
-    st.title("🔒 Lock BP / SP")
+    st.title("🔒 Lock / Unlock BP & SP")
     st.markdown("---")
     matches = db().table("matches").select("*").execute().data or []
     if not matches:
         st.info("No matches.")
         return
     user = st.session_state.user
+    role = user["role"]
     now  = datetime.now().strftime("%Y-%m-%d %H:%M")
     for m in matches:
         with st.expander(f"🏏 {m['match_name']} — {m.get('match_date','')}"):
@@ -516,6 +472,10 @@ def page_lock_match():
             with col1:
                 if m.get("bp_locked"):
                     st.success(f"🔒 BP locked by **{get_user_display(m.get('bp_locked_by',''))}** at {m.get('bp_locked_at','')}")
+                    if role == "admin":
+                        if st.button("🔓 Unlock BP", key=f"unlockbp_{m['id']}"):
+                            db().table("matches").update({"bp_locked":False,"bp_locked_by":None,"bp_locked_at":None}).eq("id",m["id"]).execute()
+                            st.rerun()
                 else:
                     if st.button("🔒 Lock BP", key=f"lockbp_{m['id']}"):
                         db().table("matches").update({"bp_locked":True,"bp_locked_by":user["username"],"bp_locked_at":now}).eq("id",m["id"]).execute()
@@ -524,6 +484,10 @@ def page_lock_match():
             with col2:
                 if m.get("sp_locked"):
                     st.success(f"🔒 SP locked by **{get_user_display(m.get('sp_locked_by',''))}** at {m.get('sp_locked_at','')}")
+                    if role == "admin":
+                        if st.button("🔓 Unlock SP", key=f"unlocksp_{m['id']}"):
+                            db().table("matches").update({"sp_locked":False,"sp_locked_by":None,"sp_locked_at":None}).eq("id",m["id"]).execute()
+                            st.rerun()
                 else:
                     if st.button("🔒 Lock SP", key=f"locksp_{m['id']}"):
                         db().table("matches").update({"sp_locked":True,"sp_locked_by":user["username"],"sp_locked_at":now}).eq("id",m["id"]).execute()
@@ -546,7 +510,7 @@ def page_enter_results():
     actual_winner     = caps(actual_winner_raw)
     if actual_winner:
         st.caption(f"Team: **{actual_winner}**")
-    if st.button("✅ Submit Result & Award Points"):
+    if st.button("✅ Submit Result & Award Points", use_container_width=True):
         if not actual_winner:
             st.error("Enter winner!")
         else:
@@ -577,6 +541,32 @@ def page_bp_results():
         st.markdown("---")
 
 
+def page_template_bp_results():
+    st.title("🎯 Template BP Results")
+    st.markdown("---")
+    pending = db().table("template_bps").select("*").eq("status","pending").execute().data or []
+    if not pending:
+        st.info("No template BPs waiting for results.")
+        return
+    matches = list(set(b["match_name"] for b in pending))
+    selected_match = st.selectbox("Filter by Match", ["All"] + matches)
+    filtered = pending if selected_match == "All" else [b for b in pending if b["match_name"] == selected_match]
+    for b in filtered:
+        display = get_user_display(b["player"])
+        st.markdown(f"**{display}** — {b['match_name']}")
+        st.markdown(f"🎯 *{b['prediction_text']}*")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button(f"✅ Correct (+3 pts)", key=f"tc_{b['id']}"):
+                db().table("template_bps").update({"result":"correct","points_awarded":3,"status":"done"}).eq("id",b["id"]).execute()
+                st.rerun()
+        with col2:
+            if st.button(f"❌ Wrong (-1 pt)", key=f"tw_{b['id']}"):
+                db().table("template_bps").update({"result":"wrong","points_awarded":-1,"status":"done"}).eq("id",b["id"]).execute()
+                st.rerun()
+        st.markdown("---")
+
+
 def page_match_details():
     st.title("📋 Match Details")
     st.markdown("---")
@@ -589,8 +579,8 @@ def page_match_details():
     m = matches[selected_idx]
     st.markdown(f"### 🏏 Match {selected_idx+1} — {m['match_name']} | {m.get('match_date','')}")
     col1, col2, col3 = st.columns(3)
-    col1.metric("BP",     "🔒 Locked" if m.get("bp_locked") else "🟢 Open")
-    col2.metric("SP",     "🔒 Locked" if m.get("sp_locked") else "🟢 Open")
+    col1.metric("BP", "🔒 Locked" if m.get("bp_locked") else "🟢 Open")
+    col2.metric("SP", "🔒 Locked" if m.get("sp_locked") else "🟢 Open")
     col3.metric("Status", m.get("status","open").upper())
     if m.get("actual_score"):
         st.success(f"**Result:** {m.get('actual_winner')} won | {m.get('actual_score')} runs - {str(m.get('actual_wickets',0)).zfill(2)} wkts")
@@ -600,19 +590,15 @@ def page_match_details():
         st.caption(f"🔒 SP locked by {get_user_display(m.get('sp_locked_by',''))} at {m.get('sp_locked_at','')}")
     st.markdown("---")
     st.subheader("📝 Bold Predictions")
-    bps = db().table("bps").select("*").eq("match_name", m["match_name"]).execute().data or []
+    bps  = db().table("bps").select("*").eq("match_name", m["match_name"]).execute().data or []
     tbps = db().table("template_bps").select("*").eq("match_name", m["match_name"]).execute().data or []
     all_bps = []
     for bp in bps:
         icon = "✅" if bp.get("result")=="correct" else "❌" if bp.get("result")=="wrong" else "⏳"
-        all_bps.append({"": icon, "Player": get_user_display(bp["player"]),
-            "Prediction": bp["prediction"], "Type": "Custom",
-            "Pts": bp.get("points_awarded",0)})
+        all_bps.append({"": icon, "Player": get_user_display(bp["player"]), "Prediction": bp["prediction"], "Type": "Custom", "Pts": bp.get("points_awarded",0)})
     for bp in tbps:
         icon = "✅" if bp.get("result")=="correct" else "❌" if bp.get("result")=="wrong" else "⏳"
-        all_bps.append({"": icon, "Player": get_user_display(bp["player"]),
-            "Prediction": bp["prediction_text"], "Type": "Template",
-            "Pts": bp.get("points_awarded",0)})
+        all_bps.append({"": icon, "Player": get_user_display(bp["player"]), "Prediction": bp["prediction_text"], "Type": "Template", "Pts": bp.get("points_awarded",0)})
     if all_bps:
         st.dataframe(pd.DataFrame(all_bps), use_container_width=True, hide_index=True)
     else:
@@ -629,7 +615,7 @@ def page_match_details():
             sp_rows.append({
                 "": rank, "Player": get_user_display(p["player"]),
                 "Predicted": f"{p.get('predicted_score')} - {str(p.get('predicted_wickets',0)).zfill(2)}",
-                "Winner Pick": p.get("predicted_winner","-"),
+                "Winner": p.get("predicted_winner","-"),
                 "Actual": f"{m.get('actual_score')} - {str(m.get('actual_wickets',0)).zfill(2)}" if m.get("actual_score") else "-",
                 "⚡": exact, "Pts": p.get("points_awarded",0)
             })
@@ -651,8 +637,8 @@ def page_stats():
         for u in users:
             uname = u["username"]
             bps   = db().table("bps").select("*").eq("player", uname).execute().data or []
-            preds = db().table("predictions").select("*").eq("player", uname).execute().data or []
             tbps  = db().table("template_bps").select("*").eq("player", uname).execute().data or []
+            preds = db().table("predictions").select("*").eq("player", uname).execute().data or []
             rows.append({
                 "Player":      u["display_name"],
                 "Total":       get_player_total_points(uname),
@@ -674,24 +660,21 @@ def page_stats():
         total  = get_player_total_points(uname)
         sp_pts = get_player_sp_points(uname)
         bp_pts = round(get_player_bp_points(uname) + get_player_template_bp_points(uname), 2)
-        streak_pts = get_player_streak_points(uname)
-        cur_streak = get_current_streak(uname)
+        streak_pts  = get_player_streak_points(uname)
+        cur_streak  = get_current_streak(uname)
         exact_count = get_player_exact_count(uname)
         col1,col2,col3,col4,col5 = st.columns(5)
-        col1.metric("🏆 Total",    total)
-        col2.metric("🔮 SP Pts",   sp_pts)
-        col3.metric("📝 BP Pts",   bp_pts)
-        col4.metric("🔥 Streak",   streak_pts)
-        col5.metric("⚡ Exacts",   exact_count)
+        col1.metric("🏆 Total",  total)
+        col2.metric("🔮 SP",     sp_pts)
+        col3.metric("📝 BP",     bp_pts)
+        col4.metric("🔥 Streak", streak_pts)
+        col5.metric("⚡ Exacts", exact_count)
         if cur_streak > 1:
             st.success(f"🔥 Active streak: **{cur_streak} wins in a row!** (+{streak_bonus_for(cur_streak+1)} next win)")
         st.markdown("---")
         if total > 0:
             st.subheader("📊 Points Breakdown")
-            chart_data = pd.DataFrame({
-                "Category": ["SP Points","BP Points","Streak Points"],
-                "Points":   [sp_pts, bp_pts, streak_pts]
-            })
+            chart_data = pd.DataFrame({"Category": ["SP","BP","Streak"], "Points": [sp_pts, bp_pts, streak_pts]})
             st.bar_chart(chart_data.set_index("Category"))
         st.markdown("---")
         matches = db().table("matches").select("*").execute().data or []
@@ -700,12 +683,11 @@ def page_stats():
         preds = db().table("predictions").select("*").eq("player", uname).execute().data or []
         if preds:
             st.dataframe(pd.DataFrame([{
-                "Match #": f"#{match_map.get(p['match_name'],'?')}",
-                "Match": p["match_name"],
+                "Match #": f"#{match_map.get(p['match_name'],'?')}", "Match": p["match_name"],
                 "Predicted": f"{p.get('predicted_score')} - {str(p.get('predicted_wickets',0)).zfill(2)}",
                 "Winner": p.get("predicted_winner","-"),
                 "Actual": f"{p.get('actual_score')} - {str(p.get('actual_wickets',0)).zfill(2)}" if p.get("actual_score") else "Pending",
-                "⚡": "Yes" if p.get("actual_score") and int(p.get("predicted_score") or 0) == int(p.get("actual_score") or -1) else "",
+                "⚡": "Yes" if p.get("actual_score") and int(p.get("predicted_score") or 0)==int(p.get("actual_score") or -1) else "",
                 "Pts": p.get("points_awarded",0)
             } for p in preds]), use_container_width=True, hide_index=True)
         else:
@@ -737,9 +719,8 @@ def page_season_predictions():
         if results:
             st.dataframe(pd.DataFrame([{
                 "Player": get_user_display(sp["player"]),
-                "🧡 Orange Cap": sp.get("orange_cap"),
-                "💜 Purple Cap": sp.get("purple_cap"),
-                "🌟 Emerging":   sp.get("emerging_player"),
+                "🧡 Orange Cap": sp.get("orange_cap"), "💜 Purple Cap": sp.get("purple_cap"),
+                "🌟 Emerging": sp.get("emerging_player"),
                 "Top 4": f"{sp.get('top1')}→{sp.get('top2')}→{sp.get('top3')}→{sp.get('top4')}",
                 "Pts": sp.get("points_awarded",0)
             } for sp in results]), use_container_width=True, hide_index=True)
@@ -752,19 +733,16 @@ def page_season_predictions():
         st.success("✅ Your season predictions submitted!")
         st.write(f"🧡 Orange Cap: **{sp.get('orange_cap')}**")
         st.write(f"💜 Purple Cap: **{sp.get('purple_cap')}**")
-        st.write(f"🌟 Emerging Player: **{sp.get('emerging_player')}**")
+        st.write(f"🌟 Emerging: **{sp.get('emerging_player')}**")
         st.write(f"🏏 Top 4: {sp.get('top1')} → {sp.get('top2')} → {sp.get('top3')} → {sp.get('top4')}")
         st.write(f"**Points: {sp.get('points_awarded','Pending')}**")
         return
     st.markdown("**Points:** Orange Cap=20 | Purple Cap=20 | Emerging=15 | Top4 team=6 (+4 if position correct)")
-    oc = st.text_input("🧡 Orange Cap")
-    pc = st.text_input("💜 Purple Cap")
+    oc = st.text_input("🧡 Orange Cap"); pc = st.text_input("💜 Purple Cap")
     em = st.text_input("🌟 Emerging Player")
-    t1 = st.text_input("1st Place")
-    t2 = st.text_input("2nd Place")
-    t3 = st.text_input("3rd Place")
-    t4 = st.text_input("4th Place")
-    if st.button("🚀 Submit"):
+    t1 = st.text_input("1st Place"); t2 = st.text_input("2nd Place")
+    t3 = st.text_input("3rd Place"); t4 = st.text_input("4th Place")
+    if st.button("🚀 Submit", use_container_width=True):
         if not all([oc,pc,em,t1,t2,t3,t4]):
             st.error("Fill all fields!")
         else:
@@ -780,47 +758,27 @@ def page_season_predictions():
 def page_how_to_score():
     st.title("📖 How to Score")
     st.markdown("---")
-    st.subheader("🎯 Template Bold Predictions (NEW)")
-    st.markdown("""
-- Pick a template from the pool before BP is locked
-- Fill in the player/team name
-- ✅ Correct → **+3 pts**
-- ❌ Wrong → **-1 pt**
-""")
-    st.markdown("---")
-    st.subheader("📝 Custom Bold Predictions (BP)")
-    st.markdown("""
-- Submit **1 BP per match** before BP is locked
-- ♕ Queen **approves or rejects** your BP
-- ♗ Bishops rate it **0–3** for riskiness — **blind**
-- BP value = **average of 3 Bishop scores**
-- ✅ BP Correct → **+panel avg points**
-- ❌ BP Wrong → **-1 point**
-""")
+    st.subheader("🎯 Template Bold Predictions")
+    st.markdown("- Pick a template, fill in player/team name\n- ✅ Correct → **+3 pts** | ❌ Wrong → **-1 pt**")
     st.markdown("---")
     st.subheader("🔮 Score Predictions (SP)")
-    st.markdown("""
-- After 6 overs, predict **final score + wickets + match winner**
-- 🏆 Closest score → **+4 pts**
-- ⚡ Exact score → **+6 pts**
-- ✅ Correct winner → **+2 pts**
-- 🎯 Correct wickets (SP winner only) → **+1 bonus pt**
-- Tie on closest score → **both get points**
-""")
+    st.markdown("- Predict final score + wickets + match winner after 6 overs\n- 🏆 Closest score → **+4 pts**\n- ⚡ Exact score → **+6 pts**\n- ✅ Correct winner → **+2 pts**\n- 🎯 Correct wickets (SP winner only) → **+1 pt**\n- Tie → both get points")
     st.markdown("---")
     st.subheader("🔥 Streak Points")
-    st.markdown("""
-- Win 2 SP in a row → **+1 bonus**
-- Win 3 in a row → **+2 bonus**
-- Keeps going forever! (+n-1 for n consecutive wins)
-- Streak resets if you don't win
-""")
+    st.markdown("- Consecutive SP wins keep rewarding!\n- 2 in a row → +1 | 3 → +2 | 4 → +3 | keeps going forever\n- Resets if you don't win")
     st.markdown("---")
     st.subheader("🌟 Season Predictions")
+    st.markdown("- 🧡 Orange Cap → **20 pts** | 💜 Purple Cap → **20 pts**\n- 🌟 Emerging → **15 pts**\n- 🏏 Top 4 team → **6 pts** (+4 if position correct)")
+    st.markdown("---")
+    st.subheader("♟ Roles")
     st.markdown("""
-- 🧡 Orange Cap → **20 pts** | 💜 Purple Cap → **20 pts**
-- 🌟 Emerging Player → **15 pts**
-- 🏏 Top 4 team correct → **6 pts** (+4 if position correct)
+| Role | Name | Responsibility |
+|---|---|---|
+| ♔ | King | Full control — not a player |
+| ♕ | Queen | Approves BPs, enters results (rotates weekly) |
+| ♞ | Knight | Approves Queen's + Bishops' BPs blindly (rotates weekly) |
+| ♗ | Bishop x3 | Rates BPs blindly 0–3 (fixed) |
+| ♟ | Pawn | Submits BPs and SPs |
 """)
 
 
@@ -828,7 +786,6 @@ def page_admin():
     st.title("⚙️ King's Panel")
     st.markdown("---")
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["➕ Matches", "👥 Players", "📝 BP Results", "🎯 Template BP Results", "🌟 Season"])
-
     with tab1:
         match_name = st.text_input("Match Name")
         match_date = st.date_input("Date")
@@ -846,19 +803,14 @@ def page_admin():
             bp = "🔒" if m.get("bp_locked") else "🟢"
             sp = "🔒" if m.get("sp_locked") else "🟢"
             st.write(f"**#{i+1}** 🏏 **{m['match_name']}** | {m.get('match_date','')} | BP:{bp} SP:{sp} | {m.get('status','open')}")
-
     with tab2:
         role_labels_map = {r: ROLE_LABELS.get(r, r) for r in ALL_ROLES}
-        nu = st.text_input("Username")
-        np = st.text_input("Password")
+        nu = st.text_input("Username"); np = st.text_input("Password")
         nr = st.selectbox("Role", ALL_ROLES, format_func=lambda x: role_labels_map[x])
         nd = st.text_input("Display Name")
         if st.button("Add Player"):
             if nu.strip() and np.strip() and nd.strip():
-                db().table("users").insert({
-                    "username": nu.strip(), "password": np.strip(),
-                    "role": nr, "display_name": nd.strip()
-                }).execute()
+                db().table("users").insert({"username": nu.strip(), "password": np.strip(), "role": nr, "display_name": nd.strip()}).execute()
                 st.success(f"✅ {nd} added!")
                 st.rerun()
         st.markdown("---")
@@ -880,30 +832,24 @@ def page_admin():
         st.markdown("---")
         for u in (db().table("users").select("*").execute().data or []):
             st.write(f"{ROLE_LABELS.get(u['role'],'?')} **{u['display_name']}** | `{u['username']}`")
-
     with tab3:
         page_bp_results()
-
     with tab4:
         page_template_bp_results()
-
     with tab5:
-        oc = st.text_input("🧡 Orange Cap")
-        pc = st.text_input("💜 Purple Cap")
+        oc = st.text_input("🧡 Orange Cap"); pc = st.text_input("💜 Purple Cap")
         em = st.text_input("🌟 Emerging")
         t1 = st.text_input("1st"); t2 = st.text_input("2nd")
         t3 = st.text_input("3rd"); t4 = st.text_input("4th")
         if st.button("Award Season Points"):
-            actuals = {"oc":caps(oc),"pc":caps(pc),"em":caps(em),
-                       "t1":caps(t1),"t2":caps(t2),"t3":caps(t3),"t4":caps(t4)}
+            actuals = {"oc":caps(oc),"pc":caps(pc),"em":caps(em),"t1":caps(t1),"t2":caps(t2),"t3":caps(t3),"t4":caps(t4)}
             for sp in (db().table("season_predictions").select("*").execute().data or []):
                 pts = 0
                 if sp.get("orange_cap","").upper()     == actuals["oc"]: pts += 20
                 if sp.get("purple_cap","").upper()     == actuals["pc"]: pts += 20
                 if sp.get("emerging_player","").upper()== actuals["em"]: pts += 15
                 actual_top4 = [actuals["t1"],actuals["t2"],actuals["t3"],actuals["t4"]]
-                pred_top4   = [sp.get("top1","").upper(),sp.get("top2","").upper(),
-                               sp.get("top3","").upper(),sp.get("top4","").upper()]
+                pred_top4   = [sp.get("top1","").upper(),sp.get("top2","").upper(),sp.get("top3","").upper(),sp.get("top4","").upper()]
                 for j, team in enumerate(pred_top4):
                     if team in actual_top4:
                         pts += 6
@@ -920,7 +866,10 @@ def main():
 
     if "user" not in st.session_state:
         st.session_state.user = None
+    if "page" not in st.session_state:
+        st.session_state.page = "🏆 Leaderboard"
 
+    # ── Login ──
     if st.session_state.user is None:
         st.title("🏏 LFxCT")
         st.markdown("---")
@@ -933,44 +882,63 @@ def main():
                 user = login(username, password)
                 if user:
                     st.session_state.user = user
+                    st.session_state.page = "🏆 Leaderboard"
                     st.rerun()
                 else:
                     st.error("Wrong username or password!")
             st.markdown("---")
             if st.button("👁️ Continue as Guest", use_container_width=True):
                 st.session_state.user = {"username":"guest","display_name":"Guest","role":"guest"}
+                st.session_state.page = "🏆 Leaderboard"
                 st.rerun()
         return
 
     user = st.session_state.user
     role = user["role"]
+    pages = get_pages(role)
 
+    # Keep current page valid
+    if st.session_state.page not in pages:
+        st.session_state.page = pages[0]
+
+    # ── TOP MOBILE NAV (always visible) ──
+    st.markdown(f"### 🏏 LFxCT &nbsp;&nbsp; *{ROLE_LABELS.get(role, role)} — {user['display_name']}*")
+    
+    col_nav, col_logout = st.columns([4, 1])
+    with col_nav:
+        selected = st.selectbox(
+            "Navigate",
+            pages,
+            index=pages.index(st.session_state.page),
+            label_visibility="collapsed",
+            key="mobile_nav"
+        )
+        if selected != st.session_state.page:
+            st.session_state.page = selected
+            st.rerun()
+    with col_logout:
+        if role == "guest":
+            if st.button("🔙 Login", use_container_width=True):
+                st.session_state.user = None
+                st.rerun()
+        else:
+            if st.button("🚪 Logout", use_container_width=True):
+                st.session_state.user = None
+                st.rerun()
+
+    st.markdown("---")
+
+    # ── Also keep sidebar for desktop ──
     with st.sidebar:
         role_label = ROLE_LABELS.get(role, role)
         st.markdown(f"### 👋 {user['display_name']}")
         st.markdown(f"*{role_label}*")
         st.markdown("---")
-
-        if role == "guest":
-            pages = ["🏆 Leaderboard","📊 Stats","📋 Match Details","📖 How to Score","🌟 Season Predictions"]
-        else:
-            pages = ["🏆 Leaderboard","📊 Stats","📋 Match Details","📖 How to Score",
-                     "🌟 Season Predictions","🎯 Bold Prediction","🔮 Score Prediction"]
-            if role in ["bp_manager","knight","admin"]:
-                pages.append("✅ Approve BPs")
-            if role in BISHOP_ROLES + ["knight","admin"]:
-                pages.append("⭐ Rate BPs")
-            if role in BISHOP_ROLES + ["bp_manager","admin"]:
-                pages.append("🔒 Lock BP/SP")
-            if role in ["bp_manager","admin"]:
-                pages.append("🏆 Enter Results")
-                pages.append("📝 BP Results")
-            if role == "admin":
-                pages.append("⚙️ King's Panel")
-
-        page = st.radio("Navigation", pages)
+        sidebar_page = st.radio("Navigation", pages, index=pages.index(st.session_state.page))
+        if sidebar_page != st.session_state.page:
+            st.session_state.page = sidebar_page
+            st.rerun()
         st.markdown("---")
-
         if role == "guest":
             if st.button("🔙 Back to Login", use_container_width=True):
                 st.session_state.user = None
@@ -980,6 +948,8 @@ def main():
                 st.session_state.user = None
                 st.rerun()
 
+    # ── Page routing ──
+    page = st.session_state.page
     if   page == "🏆 Leaderboard":       page_leaderboard()
     elif page == "🎯 Bold Prediction":    page_template_bp()
     elif page == "🔮 Score Prediction":   page_submit_sp()
