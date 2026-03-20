@@ -150,7 +150,7 @@ def get_player_total_points(username):
 def get_current_streak(username):
     preds = db().table("predictions").select("*").eq("player", username).execute().data or []
     done  = sorted([p for p in preds if p.get("actual_score") is not None],
-                   key=lambda x: x.get("submitted_at",""), reverse=True)
+                   key=lambda x: x.get("submitted_at") or "", reverse=True)
     streak = 0
     for p in done:
         all_p = db().table("predictions").select("*").eq("match_name", p["match_name"]).execute().data or []
