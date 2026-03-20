@@ -5,8 +5,8 @@ import pandas as pd
 
 # ─── Supabase Setup ────────────────────────────────────────────────────────────
 
-SUPABASE_URL = st.secrets[“SUPABASE_URL”]
-SUPABASE_KEY = st.secrets[“SUPABASE_KEY”]
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
 @st.cache_resource
 def get_client() -> Client:
