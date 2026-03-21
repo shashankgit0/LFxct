@@ -352,7 +352,7 @@ def page_overall_stats():
             up      = [p for p in all_preds if p["player"]==uname and p.get("actual_score") is not None]
             wins    = len([p for p in up if p["diff"]==min((abs(int(x.get("predicted_score") or 0)-int(x.get("actual_score") or 0)) for x in [q for q in all_preds if q["match_name"]==p["match_name"] and q.get("actual_score") is not None]), default=999) if True] if up else [])
             # simpler win count
-            sp_wins = 0
+sp_wins = 0
             for p in up:
                 match_preds = [x for x in all_preds if x["match_name"]==p["match_name"] and x.get("actual_score") is not None]
                 if not match_preds: continue
@@ -360,10 +360,10 @@ def page_overall_stats():
                 my_d  = abs(int(p.get("predicted_score") or 0)-int(p.get("actual_score") or 0))
                 if my_d == min_d: sp_wins += 1
             played  = len(up)
-            corr_w  = len([p for p in up if caps(p.get("predicted_winner",""))==caps(p.get("actual_winner",""))])
-            corr_wk = len([p for p in up if int(p.get("predicted_wickets") or -1)==int(p.get("actual_wickets") or -2)])
-            margin  = sum(abs(int(p.get("predicted_score") or 0)-int(p.get("actual_score") or 0)) for p in up)
-            exact   = len([p for p in up if int(p.get("predicted_score") or 0)==int(p.get("actual_score") or 0)])
+            corr_w  = len([x for x in up if caps(x.get("predicted_winner",""))==caps(x.get("actual_winner",""))])
+            corr_wk = len([x for x in up if int(x.get("predicted_wickets") or -1)==int(x.get("actual_wickets") or -2)])
+            margin  = sum(abs(int(x.get("predicted_score") or 0)-int(x.get("actual_score") or 0)) for x in up)
+            exact   = len([x for x in up if int(x.get("predicted_score") or 0)==int(x.get("actual_score") or 0)])
             sp_rows.append({
                 "Team": team, "Played": played, "SP Wins": sp_wins,
                 "Win %": f"{round(sp_wins/played*100)}%" if played else "0%",
