@@ -7,12 +7,8 @@ import pandas as pd
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
-@st.cache_resource
-def get_client() -> Client:
+def db() -> Client:
     return create_client(SUPABASE_URL, SUPABASE_KEY)
-
-def db():
-    return get_client()
 
 st.markdown("""
 <style>
