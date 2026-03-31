@@ -418,7 +418,7 @@ def page_draft_league():
             total_mvp = sum(pts_map.get(p.lower(), 0) for p in players)
 
             st.markdown(f'<div style="display:flex;align-items:center;gap:12px">{player_logo_html(team_username, 48)}<h3 style="margin:0">{selected_team}</h3></div>', unsafe_allow_html=True)
-            st.metric("Total MVP Points", round(total_mvp, 2))
+            st.metric("Total MVP Points", round(total_mvp, 1))
             st.markdown("---")
 
             player_rows = []
@@ -435,8 +435,15 @@ def page_draft_league():
                 s = pd.DataFrame("", index=df.index, columns=df.columns)
                 s["MVP Points"] = "background-color:#1a3a1a;color:#90ee90;font-weight:bold"
                 return s
-            st.dataframe(pd.DataFrame(player_rows).style.apply(style_players, axis=None),
-                        use_container_width=True, hide_index=True)
+df = pd.DataFrame(player_rows)
+
+st.dataframe(
+    df.style
+      .format({"MVP Points": "{:.1f}"})   # 👈 THIS FIXES DISPLAY
+      .apply(style_players, axis=None),
+    use_container_width=True,
+    hide_index=True
+)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
