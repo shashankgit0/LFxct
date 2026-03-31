@@ -364,7 +364,7 @@ def page_draft_league():
 
     with tab1:
         st.subheader("🏆 Draft League Standings")
-        st.caption("Based on ESPNcricinfo MVP points for each player in your squad")
+        st.caption("page's still a work in progress")
 
         # Get all player points from DB
         all_player_pts = db().table("draft_player_points").select("*").execute().data or []
