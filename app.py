@@ -1353,45 +1353,103 @@ def page_admin():
 
     with tab5:
         st.subheader("🏏 Update Draft MVP Points")
-        st.caption("Paste player names and their current ESPN MVP points. Updates the draft leaderboard.")
+        st.markdown("""
+**How to update:**
+1. Open [iplt20.com/stats/2026](https://www.iplt20.com/stats/2026) → select **MVP**
+2. Select all text on the page **(Ctrl+A / Cmd+A)** and copy it **(Ctrl+C / Cmd+C)**
+3. Paste it below and hit **Parse & Update**
+""")
+        pasted = st.text_area("📋 Paste IPL MVP page content here:", height=200,
+                              placeholder="Paste the full copied text from the IPL MVP page...")
 
-        all_player_pts = db().table("draft_player_points").select("*").execute().data or []
-        pts_map = {row["player_name"]: float(row.get("mvp_points") or 0) for row in all_player_pts}
+        def parse_ipl_mvp(text):
+            """Parse IPL MVP table from copied page text.
+            Format: POS  Player Name  TEAM  Pts  Mat  Wkts ...
+            e.g. '1  Devdutt Padikkal  RCB  42.0  1  0  ...'
+            """
+            import re
+            results = {}
+            lines = text.strip().split("\n")
+            for line in lines:
+                line = line.strip()
+                if not line: continue
+                # Match lines starting with a number (position)
+                match = re.match(r'^\d+\s+(.+?)\s+(?:RCB|MI|CSK|KKR|SRH|DC|GT|RR|LSG|PBKS)\s+([\d.]+)', line)
+                if match:
+                    player_name = match.group(1).strip()
+                    pts = float(match.group(2))
+                    results[player_name] = pts
+            return results
 
-        # Show all players across all teams with editable points
-        st.markdown("**Update points for players who played today:**")
+        if st.button("🔄 Parse & Update MVP Points", use_container_width=True):
+            if not pasted.strip():
+                st.error("Please paste the IPL MVP page content first!")
+            else:
+                parsed = parse_ipl_mvp(pasted)
+                if not parsed:
+                    st.error("Could not parse any player data. Make sure you copied the full page text.")
+                else:
+                    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+                    updated = 0
+                    matched = []
+                    unmatched = []
 
-        # Collect all unique players
-        all_players = []
-        for team_data in DRAFT_TEAMS.values():
-            for p in team_data["players"]:
-                if p not in all_players:
-                    all_players.append(p)
-        all_players.sort()
+                    # Get all draft players
+                    all_draft_players = []
+                    for team_data in DRAFT_TEAMS.values():
+                        all_draft_players.extend(team_data["players"])
+
+                    for draft_player in all_draft_players:
+                        # Try exact match first, then partial match
+                        pts = None
+                        matched_name = None
+
+                        # Exact match
+                        if draft_player in parsed:
+                            pts = parsed[draft_player]
+                            matched_name = draft_player
+                        else:
+                            # Partial match — check if last name matches
+                            draft_last = draft_player.split()[-1].lower()
+                            for ipl_name, ipl_pts in parsed.items():
+                                ipl_last = ipl_name.split()[-1].lower()
+                                if draft_last == ipl_last:
+                                    pts = ipl_pts
+                                    matched_name = ipl_name
+                                    break
+                                # Also try first name match
+                                if draft_player.split()[0].lower() == ipl_name.split()[0].lower():
+                                    pts = ipl_pts
+                                    matched_name = ipl_name
+                                    break
+
+                        if pts is not None:
+                            existing = db().table("draft_player_points").select("*").eq("player_name", draft_player).execute().data or []
+                            if existing:
+                                db().table("draft_player_points").update({"mvp_points": pts, "updated_at": now_str}).eq("player_name", draft_player).execute()
+                            else:
+                                db().table("draft_player_points").insert({"player_name": draft_player, "mvp_points": pts, "updated_at": now_str}).execute()
+                            matched.append(f"{draft_player} → {pts} pts")
+                            updated += 1
+
+                    st.success(f"✅ Updated {updated} players!")
+                    if matched:
+                        with st.expander(f"✅ Matched {len(matched)} players"):
+                            for m in matched:
+                                st.write(m)
 
         st.markdown("---")
-        search = st.text_input("🔍 Search player", placeholder="Type player name...")
-        filtered_players = [p for p in all_players if search.lower() in p.lower()] if search else all_players
-
-        updates = {}
-        cols = st.columns(2)
-        for i, player in enumerate(filtered_players):
-            with cols[i % 2]:
-                current = pts_map.get(player, 0)
-                new_val = st.number_input(player, min_value=0.0, max_value=1000.0,
-                                          value=float(current), step=0.5, key=f"mvp_{player}")
-                updates[player] = new_val
-
-        if st.button("💾 Save MVP Points", use_container_width=True):
-            now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-            for player, pts in updates.items():
-                existing = db().table("draft_player_points").select("*").eq("player_name", player).execute().data or []
-                if existing:
-                    db().table("draft_player_points").update({"mvp_points": pts, "updated_at": now_str}).eq("player_name", player).execute()
-                else:
-                    db().table("draft_player_points").insert({"player_name": player, "mvp_points": pts, "updated_at": now_str}).execute()
-            st.success("✅ MVP points updated!")
-            st.rerun()
+        st.subheader("Current Points")
+        all_player_pts = db().table("draft_player_points").select("*").execute().data or []
+        if all_player_pts:
+            pts_df = pd.DataFrame([{
+                "Player": r["player_name"],
+                "MVP Points": r.get("mvp_points", 0),
+                "Updated": r.get("updated_at", "")
+            } for r in sorted(all_player_pts, key=lambda x: float(x.get("mvp_points") or 0), reverse=True)])
+            st.dataframe(pts_df, use_container_width=True, hide_index=True)
+        else:
+            st.info("No points loaded yet.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
