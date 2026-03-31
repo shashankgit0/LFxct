@@ -426,7 +426,7 @@ def page_draft_league():
                 pts = pts_map.get(p.lower(), 0)
                 player_rows.append({
                     "Player": p,
-                    "MVP Points": round(pts, 2),
+                    "MVP Points": round(pts, 1),
                     "Status": "✅ Scored" if pts > 0 else "⏳ Yet to play"
                 })
             player_rows.sort(key=lambda x: x["MVP Points"], reverse=True)
