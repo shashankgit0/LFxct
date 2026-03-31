@@ -1363,24 +1363,27 @@ def page_admin():
                               placeholder="Paste the full copied text from the IPL MVP page...")
 
         def parse_ipl_mvp(text):
-            """Parse IPL MVP table from copied page text.
-            Format: POS  Player Name  TEAM  Pts  Mat  Wkts ...
-            e.g. '1  Devdutt Padikkal  RCB  42.0  1  0  ...'
-            """
-            import re
+            teams = {"RCB","MI","CSK","KKR","SRH","DC","GT","RR","LSG","PBKS"}
+            raw_lines = [l.strip() for l in text.strip().split("\n") if l.strip()]
             results = {}
-            lines = text.strip().split("\n")
-            for line in lines:
-                line = line.strip()
-                if not line: continue
-                # Match lines starting with a number (position)
-                match = re.match(r'^\d+\s+(.+?)\s+(?:RCB|MI|CSK|KKR|SRH|DC|GT|RR|LSG|PBKS)\s+([\d.]+)', line)
-                if match:
-                    player_name = match.group(1).strip()
-                    pts = float(match.group(2))
-                    results[player_name] = pts
+            i = 0
+            while i < len(raw_lines):
+                line = raw_lines[i]
+                if i + 1 < len(raw_lines) and raw_lines[i+1].upper() in teams:
+                    player_name = line
+                    i += 2
+                    if i < len(raw_lines):
+                        stats = raw_lines[i].split()
+                        if stats:
+                            try:
+                                pts = float(stats[0])
+                                results[player_name] = pts
+                            except:
+                                pass
+                        i += 1
+                    continue
+                i += 1
             return results
-
         if st.button("🔄 Parse & Update MVP Points", use_container_width=True):
             if not pasted.strip():
                 st.error("Please paste the IPL MVP page content first!")
