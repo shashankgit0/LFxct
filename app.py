@@ -364,7 +364,7 @@ def page_draft_league():
 
     with tab1:
         st.subheader("🏆 Draft League Standings")
-        st.caption("Page still a work in progress")
+        st.caption("Based on ESPNcricinfo MVP points for each player in your squad")
 
         # Get all player points from DB
         all_player_pts = db().table("draft_player_points").select("*").execute().data or []
@@ -383,7 +383,7 @@ def page_draft_league():
             team_rows.append({
                 "_username": username,
                 "Team":      team_name,
-                "MVP Total": round(total, 1),
+                "MVP Total": round(total, 2),
                 "Players Scored": f"{scored}/{len(players)}",
             })
 
@@ -418,7 +418,7 @@ def page_draft_league():
             total_mvp = sum(pts_map.get(p.lower(), 0) for p in players)
 
             st.markdown(f'<div style="display:flex;align-items:center;gap:12px">{player_logo_html(team_username, 48)}<h3 style="margin:0">{selected_team}</h3></div>', unsafe_allow_html=True)
-            st.metric("Total MVP Points", round(total_mvp, 1))
+            st.metric("Total MVP Points", round(total_mvp, 2))
             st.markdown("---")
 
             player_rows = []
@@ -426,7 +426,7 @@ def page_draft_league():
                 pts = pts_map.get(p.lower(), 0)
                 player_rows.append({
                     "Player": p,
-                    "MVP Points": round(pts, 1),
+                    "MVP Points": round(pts, 2),
                     "Status": "✅ Scored" if pts > 0 else "⏳ Yet to play"
                 })
             player_rows.sort(key=lambda x: x["MVP Points"], reverse=True)
@@ -435,10 +435,8 @@ def page_draft_league():
                 s = pd.DataFrame("", index=df.index, columns=df.columns)
                 s["MVP Points"] = "background-color:#1a3a1a;color:#90ee90;font-weight:bold"
                 return s
-df = pd.DataFrame(player_rows)
-
-st.dataframe(pd.DataFrame(player_rows).style.apply(style_players, axis=None),
-             use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(player_rows).style.apply(style_players, axis=None),
+                        use_container_width=True, hide_index=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
