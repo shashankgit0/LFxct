@@ -437,13 +437,8 @@ def page_draft_league():
                 return s
 df = pd.DataFrame(player_rows)
 
-st.dataframe(
-    df.style
-      .format({"MVP Points": "{:.1f}"})   # 👈 THIS FIXES DISPLAY
-      .apply(style_players, axis=None),
-    use_container_width=True,
-    hide_index=True
-)
+st.dataframe(pd.DataFrame(player_rows).style.apply(style_players, axis=None),
+             use_container_width=True, hide_index=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
