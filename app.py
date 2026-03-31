@@ -383,7 +383,7 @@ def page_draft_league():
             team_rows.append({
                 "_username": username,
                 "Team":      team_name,
-                "MVP Total": round(total, 2),
+                "MVP Total": round(total, 1),
                 "Players Scored": f"{scored}/{len(players)}",
             })
 
