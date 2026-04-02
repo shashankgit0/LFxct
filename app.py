@@ -42,7 +42,7 @@ DRAFT_TEAMS = {
     "vamshi": {"name": "Vamshi Hurricanes",        "players": ["Shreyas Iyer","Angkrish Raghuvanshi","Yuzvendra Chahal","Harshal Patel","Jacob Bethell","Khaleel Ahmed","Aiden Markram","Ryan Rickleton","Ramandeep Singh","Zeeshan Ansari","Suyash Sharma","Sameer Rizvi"]},
     "minto":  {"name": "Minato Maniacs",           "players": ["Sanju Samson","Heinrich Klaasen","Sunil Narine","Dewald Brevis","Liam Livingstone","MS Dhoni","Venky Iyer","Deepak Chahar","Mukesh Kumar","Devdutt Padikkal","Karun Nair","Ashwani Kumar"]},
     "snehit": {"name": "Snehit Synergy",           "players": ["Yashasvi Jaiswal","Bhuvneshwar Kumar","Phil Salt","Jitesh Sharma","Aniket Sharma","Josh Hazelwood","Will Jacks","Marco Jansen","Shashank Singh","Vignesh Puthur","Salil Arora","Mangesh Yadav"]},
-    "shank":  {"name": "Shank Tacticos",           "players": ["Hardik Pandya","Noor Ahmad","Tilak Varma","Priyansh Arya","Varun Chakravarthy","Dhruv Jurel","Pat Cummins","Marcus Stoinis","Anukul Roy","Nitish Rana","Vaibhav Arora","Matheesha Pathirana"]},
+    "shank":  {"name": "Shank Tacticos",           "players": ["Hardik Pandya","Noor Ahmad","Tilak Varma","Priyansh Arya","Varun Chakaravarthy","Dhruv Jurel","Pat Cummins","Marcus Stoinis","Anukul Roy","Nitish Rana","Vaibhav Arora","Matheesha Pathirana"]},
     "visu":   {"name": "Visu Vijayasena",          "players": ["Sai Sudharsan","Rishabh Pant","Shivam Dube","Washington Sundar","Nihal Wadhera","Prasidh Krishna","R Sai Kishore","Jos Buttler","Nandre Burger","Sarfaraz Khan","Matthew Breetzke","Azmatullah Omarzai"]},
     "kartik": {"name": "Kartik Kryptonites",       "players": ["Jasprit Bumrah","Ishan Kishan","Tristan Stubbs","Rajat Patidar","Connolly Cooper","Kagiso Rabada","Nitish Kumar Reddy","Glenn Phillips","Ajinkya Rahane","Abhishek Porel","Harpreet Brar","Mayank Markande"]},
     "vvs":    {"name": "Satwik Quantum Crusaders", "players": ["Axar Patel","Cameron Green","Arshdeep Singh","Shimron Hetmyer","Josh Inglis","Ayush Badoni","Sandeep Sharma","Mitchell Santner","Digvesh Rathi","Vipraj Nigam","Ruturaj Gaikwad","Shivang Kumar"]},
@@ -439,12 +439,14 @@ def page_draft_league():
                     "Status":     "✅ Scored" if pts > 0 else "⏳ Yet to play"
                 })
             player_rows.sort(key=lambda x: x["MVP Points"], reverse=True)
+            df_players = pd.DataFrame(player_rows)
+            df_players["MVP Points"] = df_players["MVP Points"].apply(lambda x: f"{x:.1f}")
 
             def style_players(df):
                 s = pd.DataFrame("", index=df.index, columns=df.columns)
                 s["MVP Points"] = "background-color:#1a3a1a;color:#90ee90;font-weight:bold"
                 return s
-            st.dataframe(pd.DataFrame(player_rows).style.apply(style_players, axis=None),
+            st.dataframe(df_players.style.apply(style_players, axis=None),
                         use_container_width=True, hide_index=True)
 
             if sub:
