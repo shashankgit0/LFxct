@@ -37,15 +37,15 @@ ALL_ROLES   = ["player", "admin"]
 # ── Draft League Teams ─────────────────────────────────────────────────────────
 DRAFT_TEAMS = {
     "dinu":   {"name": "Dinesh Chargers",          "players": ["Abhishek Sharma","Finn Allen","Mayank Yadav","Romario Shepard","Avesh Khan","Mitchell Marsh","Pathum Nissanka","Aquib Nabi","Karthik Tyagi","Naman Dhir","Prashant Veer","Urvil Patel"]},
-    "yash":   {"name": "Yash Swaggers",            "players": ["Shubman Gill","Mohammed Siraj","Travis Head","Prabhsimran Singh","Rashid Khan","T Natarajan","Mohammed Shami","Rohit Sharma","Tim David","Wanindu Hasaranga","Rahul Tripathi","Abdul Samad"]},
-    "sou":    {"name": "Sou Godfathers",           "players": ["Virat Kohli","Vaibhav Suryavanshi","Nicholas Pooran","Riyan Parag","Kuldeep Yadav","Ravindra Jadeja","Krunal Pandya","Jofra Archer","Kartik Sharma","Sherfane Rutherford","Jaydev Unadkat","Matt Henry"]},
+    "yash":   {"name": "Yash Swaggers",            "players": ["Shubman Gill","Mohammed Siraj","Travis Head","Prabhsimran Singh","Rashid Khan","T Natarajan","Mohammed Shami","Rohit Sharma","Tim David","Mohsin Khan","Rahul Tripathi","Abdul Samad"]},
+    "sou":    {"name": "Sou Godfathers",           "players": ["Virat Kohli","Vaibhav Suryavanshi","Nicholas Pooran","Riyan Parag","Kuldeep Yadav","Ravindra Jadeja","Krunal Pandya","Jofra Archer","Sherfane Rutherford","Jaydev Unadkat","Matt Henry","Kartik Sharma"]},
     "vamshi": {"name": "Vamshi Hurricanes",        "players": ["Shreyas Iyer","Angkrish Raghuvanshi","Yuzvendra Chahal","Harshal Patel","Jacob Bethell","Khaleel Ahmed","Aiden Markram","Ryan Rickleton","Ramandeep Singh","Zeeshan Ansari","Suyash Sharma","Sameer Rizvi"]},
     "minto":  {"name": "Minato Maniacs",           "players": ["Sanju Samson","Heinrich Klaasen","Sunil Narine","Dewald Brevis","Liam Livingstone","MS Dhoni","Venky Iyer","Deepak Chahar","Mukesh Kumar","Devdutt Padikkal","Karun Nair","Ashwani Kumar"]},
-    "snehit": {"name": "Snehit Synergy",           "players": ["Yashasvi Jaiswal","Bhuvneshwar Kumar","Phil Salt","Jitesh Sharma","Aniket Sharma","Josh Hazelwood","Will Jacks","Marco Jansen","Shashank Singh","Umesh Yadav","Salil Arora","Mangesh Yadav"]},
+    "snehit": {"name": "Snehit Synergy",           "players": ["Yashasvi Jaiswal","Bhuvneshwar Kumar","Phil Salt","Jitesh Sharma","Aniket Sharma","Josh Hazelwood","Will Jacks","Marco Jansen","Shashank Singh","Vignesh Puthur","Salil Arora","Mangesh Yadav"]},
     "shank":  {"name": "Shank Tacticos",           "players": ["Hardik Pandya","Noor Ahmad","Tilak Varma","Priyansh Arya","Varun Chakravarthy","Dhruv Jurel","Pat Cummins","Marcus Stoinis","Anukul Roy","Nitish Rana","Vaibhav Arora","Matheesha Pathirana"]},
     "visu":   {"name": "Visu Vijayasena",          "players": ["Sai Sudharsan","Rishabh Pant","Shivam Dube","Washington Sundar","Nihal Wadhera","Prasidh Krishna","R Sai Kishore","Jos Buttler","Nandre Burger","Sarfaraz Khan","Matthew Breetzke","Azmatullah Omarzai"]},
     "kartik": {"name": "Kartik Kryptonites",       "players": ["Jasprit Bumrah","Ishan Kishan","Tristan Stubbs","Rajat Patidar","Connolly Cooper","Kagiso Rabada","Nitish Kumar Reddy","Glenn Phillips","Ajinkya Rahane","Abhishek Porel","Harpreet Brar","Mayank Markande"]},
-    "vvs":    {"name": "Satwik Quantum Crusaders", "players": ["Axar Patel","Cameron Green","Arshdeep Singh","Shimron Hetmyer","Josh Inglis","Ayush Badoni","Sandeep Sharma","Mitchell Santner","Digvesh Rathi","Vipraj Nigam","Shivang Kumar","Ruturaj Gaikwad"]},
+    "vvs":    {"name": "Satwik Quantum Crusaders", "players": ["Axar Patel","Cameron Green","Arshdeep Singh","Shimron Hetmyer","Josh Inglis","Ayush Badoni","Sandeep Sharma","Mitchell Santner","Digvesh Rathi","Vipraj Nigam","Ruturaj Gaikwad","Shivang Kumar"]},
     "hari":   {"name": "Ruthvenger Legends",       "players": ["KL Rahul","Suryakumar Yadav","Quinton de Kock","Trent Boult","David Miller","Ravi Bishnoi","Rinku Singh","Lungi Ngidi","Ashutosh Sharma","Rahul Chahar","Shardul Thakur","Rahul Tewatia"]},
 }
 
@@ -364,7 +364,7 @@ def page_draft_league():
 
     with tab1:
         st.subheader("🏆 Draft League Standings")
-        st.caption("page's still a work in progress")
+        st.caption("Based on ESPNcricinfo MVP points for each player in your squad")
 
         # Get all player points from DB
         all_player_pts = db().table("draft_player_points").select("*").execute().data or []
@@ -372,31 +372,37 @@ def page_draft_league():
 
         if not pts_map:
             st.info("No MVP points loaded yet. Admin needs to update player points.")
-        
-        # Calculate team totals
+
+        # 12th player excluded from total — only playing 11 count
         team_rows = []
         for username, team_data in DRAFT_TEAMS.items():
             team_name = team_data["name"]
             players   = team_data["players"]
-            total     = sum(pts_map.get(p.lower(), 0) for p in players)
-            scored    = sum(1 for p in players if pts_map.get(p.lower(), 0) > 0)
+            playing11 = players[:11]
+            sub       = players[11] if len(players) > 11 else None
+            total     = sum(pts_map.get(p.lower(), 0) for p in playing11)
+            scored    = sum(1 for p in playing11 if pts_map.get(p.lower(), 0) > 0)
+            sub_pts   = round(pts_map.get(sub.lower(), 0), 1) if sub else 0
             team_rows.append({
-                "_username": username,
-                "Team":      team_name,
-                "MVP Total": round(total, 2),
-                "Players Scored": f"{scored}/{len(players)}",
+                "_username":      username,
+                "Team":           team_name,
+                "MVP Total":      round(total, 1),
+                "Players Scored": f"{scored}/11",
+                "_sub":           sub,
+                "_sub_pts":       sub_pts,
             })
 
         team_rows.sort(key=lambda x: x["MVP Total"], reverse=True)
         for i, r in enumerate(team_rows):
             r["Rank"] = ["🥇","🥈","🥉"][i] if i < 3 else str(i+1)
 
-        header  = "| Rank | Team | MVP Total | Players Scored |"
-        divider = "|---|---|---|---|"
+        header  = "| Rank | Team | MVP Total | Players Scored | 12th (Sub) |"
+        divider = "|---|---|---|---|---|"
         lines   = [header, divider]
         for r in team_rows:
-            logo = player_logo_html(r["_username"], 24)
-            lines.append(f"| {r['Rank']} | {logo} **{r['Team']}** | **{r['MVP Total']}** | {r['Players Scored']} |")
+            logo    = player_logo_html(r["_username"], 24)
+            sub_str = f"{r['_sub']} ({r['_sub_pts']} pts)" if r["_sub"] else "-"
+            lines.append(f"| {r['Rank']} | {logo} **{r['Team']}** | **{r['MVP Total']}** | {r['Players Scored']} | {sub_str} |")
         st.markdown("\n".join(lines), unsafe_allow_html=True)
 
         st.markdown("")
@@ -415,19 +421,22 @@ def page_draft_league():
         if team_username:
             team_data = DRAFT_TEAMS[team_username]
             players   = team_data["players"]
-            total_mvp = sum(pts_map.get(p.lower(), 0) for p in players)
+            playing11 = players[:11]
+            sub       = players[11] if len(players) > 11 else None
+            total_mvp = round(sum(pts_map.get(p.lower(), 0) for p in playing11), 1)
 
             st.markdown(f'<div style="display:flex;align-items:center;gap:12px">{player_logo_html(team_username, 48)}<h3 style="margin:0">{selected_team}</h3></div>', unsafe_allow_html=True)
-            st.metric("Total MVP Points", round(total_mvp, 2))
+            st.metric("Total MVP Points (Playing 11)", total_mvp)
             st.markdown("---")
 
+            st.markdown("**🏏 Playing 11**")
             player_rows = []
-            for p in players:
-                pts = pts_map.get(p.lower(), 0)
+            for p in playing11:
+                pts = round(pts_map.get(p.lower(), 0), 1)
                 player_rows.append({
-                    "Player": p,
-                    "MVP Points": round(pts, 2),
-                    "Status": "✅ Scored" if pts > 0 else "⏳ Yet to play"
+                    "Player":     p,
+                    "MVP Points": pts,
+                    "Status":     "✅ Scored" if pts > 0 else "⏳ Yet to play"
                 })
             player_rows.sort(key=lambda x: x["MVP Points"], reverse=True)
 
@@ -437,6 +446,11 @@ def page_draft_league():
                 return s
             st.dataframe(pd.DataFrame(player_rows).style.apply(style_players, axis=None),
                         use_container_width=True, hide_index=True)
+
+            if sub:
+                st.markdown("---")
+                sub_pts = round(pts_map.get(sub.lower(), 0), 1)
+                st.markdown(f"**🔄 12th Player (Sub):** {sub} — {sub_pts} pts *(not counted in total)*")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1352,6 +1366,29 @@ def page_admin():
             st.success("✅ Season points awarded!")
 
     with tab5:
+        st.subheader("🔄 Swap 12th Player")
+        st.caption("Use when a player is injured — swap the sub into the playing 11")
+        swap_team_name = st.selectbox("Select Team", [v["name"] for v in DRAFT_TEAMS.values()], key="swap_team")
+        swap_username  = next((k for k,v in DRAFT_TEAMS.items() if v["name"] == swap_team_name), None)
+        if swap_username:
+            swap_players = list(DRAFT_TEAMS[swap_username]["players"])
+            playing11    = swap_players[:11]
+            sub          = swap_players[11] if len(swap_players) > 11 else None
+            if sub:
+                swap_out = st.selectbox("Swap OUT (injured player from 11)", playing11, key="swap_out")
+                st.info(f"🔄 **{sub}** will come IN | **{swap_out}** will go to sub slot")
+                if st.button("✅ Confirm Swap", use_container_width=True):
+                    idx_out = swap_players.index(swap_out)
+                    swap_players[idx_out] = sub
+                    swap_players[11] = swap_out
+                    DRAFT_TEAMS[swap_username]["players"] = swap_players
+                    st.success(f"✅ {sub} is now in the playing 11! {swap_out} is the new sub.")
+                    st.info("⚠️ Note: This swap resets when the app restarts. To make it permanent, update the code.")
+                    st.rerun()
+            else:
+                st.info("No 12th player set for this team.")
+        st.markdown("---")
+
         st.subheader("🏏 Update Draft MVP Points")
         st.markdown("""
 **How to update:**
@@ -1403,25 +1440,36 @@ def page_admin():
                         all_draft_players.extend(team_data["players"])
 
                     for draft_player in all_draft_players:
-                        # Try exact match first, then partial match
                         pts = None
                         matched_name = None
+                        draft_lower = draft_player.lower().strip()
 
-                        # Exact match
+                        # Try exact match first
                         if draft_player in parsed:
                             pts = parsed[draft_player]
                             matched_name = draft_player
                         else:
-                            # Partial match — check if last name matches
-                            draft_last = draft_player.split()[-1].lower()
+                            # Try case-insensitive exact match
                             for ipl_name, ipl_pts in parsed.items():
-                                ipl_last = ipl_name.split()[-1].lower()
-                                if draft_last == ipl_last:
+                                if ipl_name.lower().strip() == draft_lower:
                                     pts = ipl_pts
                                     matched_name = ipl_name
                                     break
-                                # Also try first name match
-                                if draft_player.split()[0].lower() == ipl_name.split()[0].lower():
+
+                        # Only if still no match, try full name contains match
+                        # e.g. "N Tilak Varma" matches "Tilak Varma"
+                        if pts is None:
+                            for ipl_name, ipl_pts in parsed.items():
+                                ipl_lower = ipl_name.lower().strip()
+                                # Check if all words of draft name appear in ipl name
+                                draft_words = draft_lower.split()
+                                if all(w in ipl_lower for w in draft_words):
+                                    pts = ipl_pts
+                                    matched_name = ipl_name
+                                    break
+                                # Or all words of ipl name appear in draft name
+                                ipl_words = ipl_lower.split()
+                                if len(ipl_words) >= 2 and all(w in draft_lower for w in ipl_words):
                                     pts = ipl_pts
                                     matched_name = ipl_name
                                     break
