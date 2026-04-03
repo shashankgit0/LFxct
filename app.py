@@ -41,7 +41,7 @@ DRAFT_TEAMS = {
     "sou":    {"name": "Sou Godfathers",           "players": ["Virat Kohli","Vaibhav Sooryavanshi","Nicholas Pooran","Riyan Parag","Kuldeep Yadav","Ravindra Jadeja","Krunal Pandya","Jofra Archer","Sherfane Rutherford","Jaydev Unadkat","Matt Henry","Kartik Sharma"]},
     "vamshi": {"name": "Vamshi Hurricanes",        "players": ["Shreyas Iyer","Angkrish Raghuvanshi","Yuzvendra Chahal","Harshal Patel","Jacob Bethell","Khaleel Ahmed","Aiden Markram","Ryan Rickleton","Ramandeep Singh","Zeeshan Ansari","Suyash Sharma","Sameer Rizvi"]},
     "minto":  {"name": "Minato Maniacs",           "players": ["Sanju Samson","Heinrich Klaasen","Sunil Narine","Dewald Brevis","Liam Livingstone","MS Dhoni","Venky Iyer","Deepak Chahar","Mukesh Kumar","Devdutt Padikkal","Karun Nair","Ashwani Kumar"]},
-    "snehit": {"name": "Snehit Synergy",           "players": ["Yashasvi Jaiswal","Bhuvneshwar Kumar","Phil Salt","Jitesh Sharma","Aniket Sharma","Josh Hazelwood","Will Jacks","Marco Jansen","Shashank Singh","Vignesh Puthur","Salil Arora","Mangesh Yadav"]},
+    "snehit": {"name": "Snehit Synergy",           "players": ["Yashasvi Jaiswal","Bhuvneshwar Kumar","Phil Salt","Jitesh Sharma","Aniket Verma","Josh Hazelwood","Will Jacks","Marco Jansen","Shashank Singh","Vignesh Puthur","Salil Arora","Mangesh Yadav"]},
     "shank":  {"name": "Shank Tacticos",           "players": ["Hardik Pandya","Noor Ahmad","Tilak Varma","Priyansh Arya","Varun Chakaravarthy","Dhruv Jurel","Donovan Ferreira","Marcus Stoinis","Anukul Roy","Nitish Rana","Vaibhav Arora","Matheesha Pathirana"]},
     "visu":   {"name": "Visu Vijayasena",          "players": ["Sai Sudharsan","Rishabh Pant","Shivam Dube","Washington Sundar","Nihal Wadhera","Prasidh Krishna","R Sai Kishore","Jos Buttler","Nandre Burger","Sarfaraz Khan","Matthew Breetzke","Azmatullah Omarzai"]},
     "kartik": {"name": "Kartik Kryptonites",       "players": ["Jasprit Bumrah","Ishan Kishan","Tristan Stubbs","Rajat Patidar","Cooper Connolly","Kagiso Rabada","Nitish Kumar Reddy","Glenn Phillips","Ajinkya Rahane","Abhishek Porel","Harpreet Brar","Mayank Markande"]},
@@ -1446,44 +1446,27 @@ def page_admin():
                         matched_name = None
                         draft_lower = draft_player.lower().strip()
 
-                        # Try exact match first
-                        if draft_player in parsed:
-                            pts = parsed[draft_player]
-                            matched_name = draft_player
-                        else:
-                            # Try case-insensitive exact match
-                            for ipl_name, ipl_pts in parsed.items():
-                                if ipl_name.lower().strip() == draft_lower:
-                                    pts = ipl_pts
-                                    matched_name = ipl_name
-                                    break
+                        # EXACT match only — case insensitive
+                        # No partial matching to avoid wrong assignments
+                        for ipl_name, ipl_pts in parsed.items():
+                            if ipl_name.lower().strip() == draft_lower:
+                                pts = ipl_pts
+                                matched_name = ipl_name
+                                break
 
-                        # Only if still no match, try full name contains match
-                        # e.g. "N Tilak Varma" matches "Tilak Varma"
+                        # If still no match, set to 0 (player hasn't played)
                         if pts is None:
-                            for ipl_name, ipl_pts in parsed.items():
-                                ipl_lower = ipl_name.lower().strip()
-                                # Check if all words of draft name appear in ipl name
-                                draft_words = draft_lower.split()
-                                if all(w in ipl_lower for w in draft_words):
-                                    pts = ipl_pts
-                                    matched_name = ipl_name
-                                    break
-                                # Or all words of ipl name appear in draft name
-                                ipl_words = ipl_lower.split()
-                                if len(ipl_words) >= 2 and all(w in draft_lower for w in ipl_words):
-                                    pts = ipl_pts
-                                    matched_name = ipl_name
-                                    break
+                            pts = 0
 
-                        if pts is not None:
-                            existing = db().table("draft_player_points").select("*").eq("player_name", draft_player).execute().data or []
-                            if existing:
-                                db().table("draft_player_points").update({"mvp_points": pts, "updated_at": now_str}).eq("player_name", draft_player).execute()
-                            else:
-                                db().table("draft_player_points").insert({"player_name": draft_player, "mvp_points": pts, "updated_at": now_str}).execute()
+                        # Always save — even 0 — so wrong old values get overwritten
+                        existing = db().table("draft_player_points").select("*").eq("player_name", draft_player).execute().data or []
+                        if existing:
+                            db().table("draft_player_points").update({"mvp_points": pts, "updated_at": now_str}).eq("player_name", draft_player).execute()
+                        else:
+                            db().table("draft_player_points").insert({"player_name": draft_player, "mvp_points": pts, "updated_at": now_str}).execute()
+                        if pts > 0:
                             matched.append(f"{draft_player} → {pts} pts")
-                            updated += 1
+                        updated += 1
 
                     st.success(f"✅ Updated {updated} players!")
                     if matched:
