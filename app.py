@@ -1096,6 +1096,7 @@ def page_match_details():
     sorted_matches = sort_matches_today_first(matches)
     options = [f"Match #{mm[m['match_name']]} — {m['match_name']}{'  *' if is_today(m.get('match_date','')) else ''}" for m in sorted_matches]
     idx     = st.selectbox("Select Match", range(len(sorted_matches)), format_func=lambda i: options[i])
+    m       = sorted_matches[idx]
     st.markdown(f"### 🏏 Match #{mm[m['match_name']]} — {m['match_name']} | {m.get('match_date','')}")
     c1,c2,c3 = st.columns(3)
     c1.metric("BP","🔒 Locked" if m.get("bp_locked") else "🟢 Open")
