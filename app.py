@@ -329,17 +329,55 @@ def page_leaderboard():
     for i, r in enumerate(rows):
         r["Rank"] = ["🥇", "🥈", "🥉"][i] if i < 3 else str(i + 1)
 
-    # HTML table with light background on Total and Team columns
-    # Simple top table — Rank, Team, Total only
-    header  = "| Rank | Team | Total |"
-    divider = "|---|---|---|"
-    lines   = [header, divider]
-    for r in rows:
-        logo = player_logo_html(r["_un"], 24)
-        lines.append(f"| {r['Rank']} | {logo} **{r['Team']}** | **{r['Total']}** |")
-    st.markdown("\n".join(lines), unsafe_allow_html=True)
+    # ── Podium (top 3) ────────────────────────────────────────────────────────
+    if len(rows) >= 3:
+        p1, p2, p3 = rows[0], rows[1], rows[2]
+        def podium_card(r, height, border_color, medal, bg):
+            logo_url_str = logo_url(r["_un"])
+            return f"""
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+width:30%;height:{height}px;background:{bg};border-radius:12px 12px 0 0;
+border:2px solid {border_color};padding:12px 8px 10px 8px;box-sizing:border-box;">
+  <img src="{logo_url_str}" width="44" height="44"
+       style="border-radius:50%;object-fit:cover;border:2px solid {border_color};margin-bottom:6px;"
+       onerror="this.style.display='none'">
+  <div style="font-size:1.6em;line-height:1">{medal}</div>
+  <div style="font-size:0.75em;font-weight:bold;color:#fff;text-align:center;
+       margin-top:4px;word-break:break-word;line-height:1.2">{r["Team"]}</div>
+  <div style="font-size:1.1em;font-weight:bold;color:{border_color};margin-top:6px">{r["Total"]} pts</div>
+</div>"""
+        podium_html = f"""
+<div style="display:flex;align-items:flex-end;justify-content:center;gap:6px;
+width:100%;padding:0 4px;box-sizing:border-box;margin-bottom:8px">
+  {podium_card(p2, 160, "#C0C0C0", "🥈", "#1a1a2e")}
+  {podium_card(p1, 200, "#FFD700", "🥇", "#1a2a0a")}
+  {podium_card(p3, 130, "#CD7F32", "🥉", "#1a1a2e")}
+</div>"""
+        st.markdown(podium_html, unsafe_allow_html=True)
 
-    # Full breakdown table below
+    # ── Positions 4 onwards ───────────────────────────────────────────────────
+    if len(rows) > 3:
+        rest = rows[3:]
+        rest_html = '<div style="width:100%">'
+        for i, r in enumerate(rest):
+            logo_url_str = logo_url(r["_un"])
+            pos = i + 4
+            rest_html += f"""
+<div style="display:flex;align-items:center;justify-content:space-between;
+padding:10px 14px;margin:4px 0;border-radius:8px;background:#111827;
+border:1px solid #2d3748;box-sizing:border-box">
+  <div style="display:flex;align-items:center;gap:10px">
+    <span style="color:#9ca3af;font-weight:bold;min-width:20px">{pos}</span>
+    <img src="{logo_url_str}" width="32" height="32"
+         style="border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">
+    <span style="color:#fff;font-weight:600;font-size:0.9em">{r["Team"]}</span>
+  </div>
+  <span style="color:#90ee90;font-weight:bold;font-size:1em">{r["Total"]} pts</span>
+</div>"""
+        rest_html += "</div>"
+        st.markdown(rest_html, unsafe_allow_html=True)
+
+    # ── Full breakdown table ───────────────────────────────────────────────────
     st.markdown("---")
     st.caption("Full Breakdown")
     df_rows = [{k: v for k, v in r.items() if k != "_un"} for r in rows]
