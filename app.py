@@ -31,13 +31,7 @@ header {visibility: hidden;}
 [data-testid="stToolbar"] {visibility: hidden;}
 [data-testid="stDecoration"] {visibility: hidden;}
 section[data-testid="stSidebar"] {display: none !important;}
-/* Match color expanders */
-.match-done details { background: #2a0f0f !important; border: 1px solid #5a2020 !important; }
-.match-done summary { color: #ffbbbb !important; }
-.match-today details { background: #2a2a0a !important; border: 1px solid #5a5a20 !important; }
-.match-today summary { color: #ffee88 !important; }
-.match-open details { background: #0a2010 !important; border: 1px solid #1a5a30 !important; }
-.match-open summary { color: #88ffbb !important; }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -408,8 +402,8 @@ def page_draft_league():
     tab1, tab2 = st.tabs(["🏆 Draft Leaderboard","👥 Team Squads"])
 
     with tab1:
-        st.subheader("🏆 Draft League Standings")
-        st.caption("Based on ESPNcricinfo MVP points for each player in your squad")
+        st.markdown("<h3 style='text-align:center'>🏆 Draft League Standings</h3>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center;color:gray;font-size:0.85em'>Based on ESPNcricinfo MVP points for each player in your squad</p>", unsafe_allow_html=True)
         all_player_pts = db().table("draft_player_points").select("*").execute().data or []
         pts_map = {row["player_name"].lower(): float(row.get("mvp_points") or 0) for row in all_player_pts}
         if not pts_map:
@@ -442,7 +436,7 @@ def page_draft_league():
         st.markdown("\n".join(lines), unsafe_allow_html=True)
 
     with tab2:
-        st.subheader("👥 Team Squads & Points")
+        st.markdown("<h3 style='text-align:center'>👥 Team Squads & Points</h3>", unsafe_allow_html=True)
         all_player_pts = db().table("draft_player_points").select("*").execute().data or []
         pts_map   = {row["player_name"].lower(): float(row.get("mvp_points") or 0) for row in all_player_pts}
         stats_map = {row["player_name"].lower(): row for row in all_player_pts}
@@ -496,7 +490,7 @@ def page_overall_stats():
     tab1, tab2, tab3, tab4 = st.tabs(["📋 Full Leaderboard","🎯 Accuracy","🏅 Podium Tracker","⚔️ Head to Head"])
 
     with tab1:
-        st.subheader("📋 Full Leaderboard")
+        st.markdown("<h3 style='text-align:center'>📋 Full Leaderboard</h3>", unsafe_allow_html=True)
         all_streaks = db().table("streaks").select("*").execute().data or []
         full = []
         for u in users:
@@ -528,7 +522,7 @@ def page_overall_stats():
         st.dataframe(pd.DataFrame(full), use_container_width=True, hide_index=True)
 
     with tab2:
-        st.subheader("🎯 SP Breakdown")
+        st.markdown("<h3 style='text-align:center'>🎯 SP Breakdown</h3>", unsafe_allow_html=True)
         sp_rows = []
         for u in users:
             un   = u["username"]
@@ -553,7 +547,7 @@ def page_overall_stats():
         sp_rows.sort(key=lambda x: x["SP Wins"], reverse=True)
         st.dataframe(pd.DataFrame(sp_rows), use_container_width=True, hide_index=True)
         st.markdown("---")
-        st.subheader("🎱 BP Success Rate")
+        st.markdown("<h3 style='text-align:center'>🎱 BP Success Rate</h3>", unsafe_allow_html=True)
         bp_rows = []
         for u in users:
             un   = u["username"]
@@ -571,13 +565,13 @@ def page_overall_stats():
         bp_rows.sort(key=lambda x: x["BP Correct"], reverse=True)
         st.dataframe(pd.DataFrame(bp_rows), use_container_width=True, hide_index=True)
         st.markdown("---")
-        st.subheader("📐 Margin of Error — lower is better")
+        st.markdown("<h3 style='text-align:center'>📐 Margin of Error — lower is better</h3>", unsafe_allow_html=True)
         m_df = pd.DataFrame([{"Team": r["Team"],"Margin": r["Margin of Error"]}
                               for r in sorted(sp_rows, key=lambda x: x["Margin of Error"])])
         st.bar_chart(m_df.set_index("Team"), use_container_width=True, height=300)
 
     with tab3:
-        st.subheader("🏅 Podium Tracker")
+        st.markdown("<h3 style='text-align:center'>🏅 Podium Tracker</h3>", unsafe_allow_html=True)
         podium_rows = []
         for u in users:
             un   = u["username"]
@@ -599,7 +593,7 @@ def page_overall_stats():
         st.dataframe(pd.DataFrame(podium_rows), use_container_width=True, hide_index=True)
 
     with tab4:
-        st.subheader("⚔️ Head to Head")
+        st.markdown("<h3 style='text-align:center'>⚔️ Head to Head</h3>", unsafe_allow_html=True)
         names = [u.get("team_name") or u["username"] for u in users]
         c1,c2 = st.columns(2)
         with c1: p1_name = st.selectbox("Player 1", names, key="h2h1")
@@ -697,13 +691,13 @@ def page_player_stats():
         st.info("✅ Won last match! Win again to start earning streak bonus.")
     st.markdown("---")
     if tot>0:
-        st.subheader("📊 Points Breakdown")
+        st.markdown("<h3 style='text-align:center'>📊 Points Breakdown</h3>", unsafe_allow_html=True)
         st.bar_chart(pd.DataFrame({
             "Category": ["Score","Winner","Wicket","BP","Streak"],
             "Points":   [score_pts,match_pts,wicket_pts,b_pts,st_pts]
         }).set_index("Category"), use_container_width=True, height=250)
     st.markdown("---")
-    st.subheader("🔮 Score Predictions")
+    st.markdown("<h3 style='text-align:center'>🔮 Score Predictions</h3>", unsafe_allow_html=True)
     if my_preds:
         rows = []
         for p in my_preds:
@@ -723,7 +717,7 @@ def page_player_stats():
     else:
         st.info("No predictions yet.")
     st.markdown("---")
-    st.subheader("🎱 Bold Predictions")
+    st.markdown("<h3 style='text-align:center'>🎱 Bold Predictions</h3>", unsafe_allow_html=True)
     if my_bps:
         rows = []
         for b in my_bps:
@@ -914,7 +908,7 @@ def page_bp_pool():
                 st.balloons()
     st.markdown("---")
     st.markdown("### 💡 Custom BP")
-    st.caption("Clear it with admin on WhatsApp first!")
+    st.markdown("<p style='text-align:center;color:gray;font-size:0.85em'>Clear it with admin on WhatsApp first!</p>", unsafe_allow_html=True)
     custom = st.text_area("Your custom BP:", placeholder="e.g. SRH will bowl 24 wides")
     if st.button("🚀 Submit Custom BP", use_container_width=True):
         if not custom.strip():
@@ -1052,10 +1046,14 @@ def page_lock_cancel():
     sorted_matches = sort_matches_today_first(matches)
     for m in sorted_matches:
         status = m.get("status","open")
-        star = "  *" if is_today(m.get("match_date","")) else ""
-        label = f"Match #{mm[m['match_name']]} — {m['match_name']} | {status.upper()}{star}"
-        css_class = "match-done" if status in ["done","cancelled"] else "match-today" if is_today(m.get("match_date","")) else "match-open"
-        st.markdown(f'<div class="{css_class}">', unsafe_allow_html=True)
+        if status in ["done","cancelled"]:
+            dot = "🔴"
+        elif is_today(m.get("match_date","")):
+            dot = "🟡"
+        else:
+            dot = "🟢"
+        star = " *" if is_today(m.get("match_date","")) else ""
+        label = f"{dot} Match #{mm[m['match_name']]} — {m['match_name']} | {status.upper()}{star}"
         with st.expander(label):
             c1,c2 = st.columns(2)
             with c1:
@@ -1107,8 +1105,14 @@ def page_match_details():
     sorted_matches = sort_matches_today_first(matches)
     def match_label(mx):
         st2 = mx.get("status","open")
+        if st2 in ["done","cancelled"]:
+            dot = "🔴"
+        elif is_today(mx.get("match_date","")):
+            dot = "🟡"
+        else:
+            dot = "🟢"
         star = " *" if is_today(mx.get("match_date","")) else ""
-        return f"Match #{mm[mx['match_name']]} — {mx['match_name']} | {st2.upper()}{star}"
+        return f"{dot} Match #{mm[mx['match_name']]} — {mx['match_name']} | {st2.upper()}{star}"
     idx = st.selectbox("Select Match", range(len(sorted_matches)), format_func=lambda i: match_label(sorted_matches[i]))
     m   = sorted_matches[idx]
     st.markdown(f"### 🏏 Match #{mm[m['match_name']]} — {m['match_name']} | {m.get('match_date','')}")
@@ -1120,7 +1124,7 @@ def page_match_details():
         st.success(f"**Result:** {m.get('actual_winner')} won | {m.get('actual_score')} - {str(m.get('actual_wickets',0)).zfill(2)}")
     if m.get("status")=="done":
         st.markdown("---")
-        st.subheader("🏆 Points of the Day")
+        st.markdown("<h3 style='text-align:center'>🏆 Points of the Day</h3>", unsafe_allow_html=True)
         users = get_playing_users()
         all_preds_match = db().table("predictions").select("*").eq("match_name",m["match_name"]).execute().data or []
         day_rows = []
@@ -1140,7 +1144,7 @@ def page_match_details():
         day_rows.sort(key=lambda x: x["Total Today"], reverse=True)
         st.dataframe(pd.DataFrame(day_rows), use_container_width=True, hide_index=True)
     st.markdown("---")
-    st.subheader("🎱 Bold Predictions")
+    st.markdown("<h3 style='text-align:center'>🎱 Bold Predictions</h3>", unsafe_allow_html=True)
     bps = db().table("pool_bps").select("*").eq("match_name",m["match_name"]).execute().data or []
     if bps:
         if not m.get("bp_locked") and m.get("status")!="done":
@@ -1155,7 +1159,7 @@ def page_match_details():
     else:
         st.info("No BPs yet.")
     st.markdown("---")
-    st.subheader("🔮 Score Predictions")
+    st.markdown("<h3 style='text-align:center'>🔮 Score Predictions</h3>", unsafe_allow_html=True)
     preds = db().table("predictions").select("*").eq("match_name",m["match_name"]).execute().data or []
     if preds:
         if not m.get("sp_locked") and m.get("status")!="done":
@@ -1191,7 +1195,7 @@ def page_season_predictions():
     locked = is_season_locked()
     all_sp = db().table("season_predictions").select("*").execute().data or []
     if locked and all_sp:
-        st.subheader("📊 Everyone's Answers")
+        st.markdown("<h3 style='text-align:center'>📊 Everyone's Answers</h3>", unsafe_allow_html=True)
         for field in SEASON_FIELDS:
             st.markdown(f"**{field['label']}** {'*(just for fun)*' if field['fun'] else ''}")
             field_rows = [{"Team": get_team(sp["player"]),"Answer": sp.get(field["key"],"-") or "-"} for sp in all_sp]
@@ -1209,7 +1213,7 @@ def page_season_predictions():
     if locked:
         st.info("Season predictions are now locked. Submission closed.")
         return
-    st.subheader("Submit Your Predictions")
+    st.markdown("<h3 style='text-align:center'>Submit Your Predictions</h3>", unsafe_allow_html=True)
     st.markdown("**Points:** 🧡 Orange Cap=10 | 💜 Purple Cap=10 | 🌟 Emerging=15 | 🏏 Top4=5pts each (+2 if correct position) | Rest = just for fun!")
     answers = {}
     for field in SEASON_FIELDS:
@@ -1233,19 +1237,19 @@ def page_season_predictions():
 def page_how_to_score():
     st.markdown("<h1 style='text-align:center'>📖 How to Score</h1>", unsafe_allow_html=True)
     st.markdown("---")
-    st.subheader("🎱 BP Pool")
+    st.markdown("<h3 style='text-align:center'>🎱 BP Pool</h3>", unsafe_allow_html=True)
     st.markdown("- Submit 1 BP per match before BP is locked\n- Custom BP: clear with admin on WhatsApp first\n- ✅ Correct → **+3 pts** | ❌ Wrong → **-1 pt** | 🚫 Dismissed → **0 pts**")
     st.markdown("---")
-    st.subheader("🔮 Score Prediction (SP)")
+    st.markdown("<h3 style='text-align:center'>🔮 Score Prediction (SP)</h3>", unsafe_allow_html=True)
     st.markdown("- Predict final score + wickets + winner after 6 overs\n- 🎯 Closest score → **+4 pts** | ⚡ Exact score → **+6 pts**\n- 🏆 Correct winner → **+2 pts** (everyone who picks correctly)\n- 🎳 Correct wickets → **+1 pt** (SP score winner only)\n- Tie → both get full points")
     st.markdown("---")
-    st.subheader("🔥 Streak Bonus")
+    st.markdown("<h3 style='text-align:center'>🔥 Streak Bonus</h3>", unsafe_allow_html=True)
     st.markdown("- 1 win = **0 streak bonus**\n- 2 wins in a row → **+1 pt**\n- 3 in a row → **+2 pts** | 4 → **+3 pts** | keeps going!\n- Resets when you don't win SP")
     st.markdown("---")
-    st.subheader("🌟 Season Predictions")
+    st.markdown("<h3 style='text-align:center'>🌟 Season Predictions</h3>", unsafe_allow_html=True)
     st.markdown("- 🧡 Orange Cap → **10 pts** | 💜 Purple Cap → **10 pts**\n- 🌟 Emerging → **15 pts**\n- 🏏 Top 4 → **5 pts each** (+2 if correct position)\n- Rest → just for fun, 0 pts")
     st.markdown("---")
-    st.subheader("👁️ Visibility Rules")
+    st.markdown("<h3 style='text-align:center'>👁️ Visibility Rules</h3>", unsafe_allow_html=True)
     st.markdown("- BPs hidden until admin locks BP\n- SPs hidden until admin locks SP\n- Season predictions hidden until admin reveals them")
 
 
@@ -1295,7 +1299,7 @@ def page_admin():
             st.write(f"{'Admin' if u['role']=='admin' else 'Player'} — **{u.get('team_name') or u['display_name']}** | `{u['username']}`")
 
     with tab3:
-        st.subheader("Submit on Behalf of a Player")
+        st.markdown("<h3 style='text-align:center'>Submit on Behalf of a Player</h3>", unsafe_allow_html=True)
         users   = get_playing_users()
         matches = get_matches()
         open_m  = get_open_matches()
@@ -1358,7 +1362,7 @@ def page_admin():
             st.info("No open matches for SP.")
 
     with tab4:
-        st.subheader("🌟 Season Predictions")
+        st.markdown("<h3 style='text-align:center'>🌟 Season Predictions</h3>", unsafe_allow_html=True)
         locked = is_season_locked()
         if locked:
             st.success("✅ Season predictions are LOCKED — everyone can see them.")
@@ -1377,7 +1381,7 @@ def page_admin():
                 st.success("✅ Locked and revealed!")
                 st.rerun()
         st.markdown("---")
-        st.subheader("Award Season Points")
+        st.markdown("<h3 style='text-align:center'>Award Season Points</h3>", unsafe_allow_html=True)
         actuals = {}
         for field in [f for f in SEASON_FIELDS if not f["fun"]]:
             actuals[field["key"]] = st.text_input(f"Actual — {field['label']}", key=f"act_{field['key']}")
@@ -1397,7 +1401,7 @@ def page_admin():
             st.success("✅ Season points awarded!")
 
     with tab5:
-        st.subheader("🔄 Swap 12th Player")
+        st.markdown("<h3 style='text-align:center'>🔄 Swap 12th Player</h3>", unsafe_allow_html=True)
         swap_team_name = st.selectbox("Select Team",[v["name"] for v in DRAFT_TEAMS.values()], key="swap_team")
         swap_username  = next((k for k,v in DRAFT_TEAMS.items() if v["name"]==swap_team_name), None)
         if swap_username:
@@ -1417,7 +1421,7 @@ def page_admin():
             else:
                 st.info("No 12th player set for this team.")
         st.markdown("---")
-        st.subheader("🏏 Update Draft MVP Points")
+        st.markdown("<h3 style='text-align:center'>🏏 Update Draft MVP Points</h3>", unsafe_allow_html=True)
         st.markdown("""
 **How to update:**
 1. Open [iplt20.com/stats/2026](https://www.iplt20.com/stats/2026) → select **MVP**
@@ -1502,7 +1506,7 @@ def page_admin():
                         with st.expander(f"✅ Matched {len(matched)} players"):
                             for m in matched: st.write(m)
         st.markdown("---")
-        st.subheader("Current Points")
+        st.markdown("<h3 style='text-align:center'>Current Points</h3>", unsafe_allow_html=True)
         all_player_pts = db().table("draft_player_points").select("*").execute().data or []
         if all_player_pts:
             pts_df = pd.DataFrame([{
@@ -1529,7 +1533,7 @@ def main():
         st.markdown("---")
         c1,c2,c3 = st.columns([1,2,1])
         with c2:
-            st.subheader("Login")
+            st.markdown("<h3 style='text-align:center'>Login</h3>", unsafe_allow_html=True)
             username = st.text_input("Username")
             password = st.text_input("Password", type="password")
             if st.button("Login", use_container_width=True):
