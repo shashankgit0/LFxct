@@ -36,16 +36,16 @@ ALL_ROLES   = ["player", "admin"]
 
 # ── Draft League Teams ─────────────────────────────────────────────────────────
 DRAFT_TEAMS = {
-    "dinu":   {"name": "Dinesh Chargers",          "players": ["Abhishek Sharma","Finn Allen","Mayank Yadav","Romario Shepherd","Avesh Khan","Mitchell Marsh","Pathum Nissanka","Aquib Nabi","Kartik Tyagi","Naman Dhir","Urvil Patel","Prashant Veer",]},
+    "dinu":   {"name": "Dinesh Chargers",          "players": ["Abhishek Sharma","Finn Allen","Mayank Yadav","Romario Shepherd","Avesh Khan","Mitchell Marsh","Pathum Nissanka","Aquib Nabi","Kartik Tyagi","Naman Dhir","Prashant Veer","Urvil Patel"]},
     "yash":   {"name": "Yash Swaggers",            "players": ["Shubman Gill","Mohammed Siraj","Travis Head","Prabhsimran Singh","Rashid Khan","T Natarajan","Mohammed Shami","Rohit Sharma","Tim David","Mohsin Khan","Rahul Tripathi","Abdul Samad"]},
-    "sou":    {"name": "Sou Godfathers",           "players": ["Virat Kohli","Vaibhav Sooryavanshi","Nicholas Pooran","Riyan Parag","Kuldeep Yadav","Ravindra Jadeja","Krunal Pandya","Jofra Archer","Jaydev Unadkat","Matt Henry","Kartik Sharma","Sherfane Rutherford"]},
+    "sou":    {"name": "Sou Godfathers",           "players": ["Virat Kohli","Vaibhav Sooryavanshi","Nicholas Pooran","Riyan Parag","Kuldeep Yadav","Ravindra Jadeja","Krunal Pandya","Jofra Archer","Sherfane Rutherford","Jaydev Unadkat","Matt Henry","Kartik Sharma"]},
     "vamshi": {"name": "Vamshi Hurricanes",        "players": ["Shreyas Iyer","Angkrish Raghuvanshi","Yuzvendra Chahal","Harshal Patel","Jacob Bethell","Khaleel Ahmed","Aiden Markram","Ryan Rickelton","Ramandeep Singh","Zeeshan Ansari","Suyash Sharma","Sameer Rizvi"]},
     "minto":  {"name": "Minato Maniacs",           "players": ["Sanju Samson","Heinrich Klaasen","Sunil Narine","Dewald Brevis","Liam Livingstone","MS Dhoni","Venky Iyer","Deepak Chahar","Mukesh Kumar","Devdutt Padikkal","Karun Nair","Ashwani Kumar"]},
-    "snehit": {"name": "Snehit Synergy",           "players": ["Yashasvi Jaiswal","Bhuvneshwar Kumar","Phil Salt","Jitesh Sharma","Aniket Verma","Josh Hazelwood","Will Jacks","Marco Jansen","Shashank Singh","Salil Arora","Mangesh Yadav","Vignesh Puthur"]},
+    "snehit": {"name": "Snehit Synergy",           "players": ["Yashasvi Jaiswal","Bhuvneshwar Kumar","Phil Salt","Jitesh Sharma","Aniket Verma","Josh Hazelwood","Will Jacks","Marco Jansen","Shashank Singh","Vignesh Puthur","Salil Arora","Mangesh Yadav"]},
     "shank":  {"name": "Shank Tacticos",           "players": ["Hardik Pandya","Noor Ahmad","Tilak Varma","Priyansh Arya","Varun Chakaravarthy","Dhruv Jurel","Donovan Ferreira","Marcus Stoinis","Anukul Roy","Nitish Rana","Vaibhav Arora","Matheesha Pathirana"]},
-    "visu":   {"name": "Visu Vijayasena",          "players": ["Sai Sudharsan","Rishabh Pant","Shivam Dube","Washington Sundar","Nihal Wadhera","Prasidh Krishna","R Sai Kishore","Jos Buttler","Nandre Burger","Sarfaraz Khan","Azmatullah Omarzai","Matthew Breetzke"]},
-    "kartik": {"name": "Kartik Kryptonites",       "players": ["Jasprit Bumrah","Ishan Kishan","Tristan Stubbs","Rajat Patidar","Cooper Connolly","Kagiso Rabada","Nitish Kumar Reddy","Glenn Phillips","Ajinkya Rahane","Abhishek Porel","Mayank Markande","Harpreet Brar"]},
-    "vvs":    {"name": "Satwik Quantum Crusaders", "players": ["Axar Patel","Cameron Green","Arshdeep Singh","Shimron Hetmyer","Josh Inglis","Ayush Mhatre","Sandeep Sharma","Mitchell Santner","Digvesh Rathi","Shivang Kumar","Ruturaj Gaikwad","Vipraj Nigam"]},
+    "visu":   {"name": "Visu Vijayasena",          "players": ["Sai Sudharsan","Rishabh Pant","Shivam Dube","Washington Sundar","Nihal Wadhera","Prasidh Krishna","R Sai Kishore","Jos Buttler","Nandre Burger","Sarfaraz Khan","Matthew Breetzke","Azmatullah Omarzai"]},
+    "kartik": {"name": "Kartik Kryptonites",       "players": ["Jasprit Bumrah","Ishan Kishan","Tristan Stubbs","Rajat Patidar","Cooper Connolly","Kagiso Rabada","Nitish Kumar Reddy","Glenn Phillips","Ajinkya Rahane","Abhishek Porel","Harpreet Brar","Mayank Markande"]},
+    "vvs":    {"name": "Satwik Quantum Crusaders", "players": ["Axar Patel","Cameron Green","Arshdeep Singh","Shimron Hetmyer","Josh Inglis","Ayush Badoni","Sandeep Sharma","Mitchell Santner","Digvesh Rathi","Vipraj Nigam","Ruturaj Gaikwad","Shivang Kumar"]},
     "hari":   {"name": "Ruthvenger Legends",       "players": ["K L Rahul","Surya Kumar Yadav","Quinton de Kock","Trent Boult","David Miller","Ravi Bishnoi","Rinku Singh","Lungi Ngidi","Ashutosh Sharma","Rahul Chahar","Shardul Thakur","Rahul Tewatia"]},
 }
 
@@ -330,19 +330,18 @@ def page_leaderboard():
         r["Rank"] = ["🥇", "🥈", "🥉"][i] if i < 3 else str(i + 1)
 
     # HTML table with light background on Total and Team columns
-    header  = "| Rank | Team | Score Pts | Winner Pts | Wicket Pts | BP Pts | Streak Pts | ⚡ Exacts | Total |"
-    divider = "|---|---|---|---|---|---|---|---|---|"
+    # Simple top table — Rank, Team, Total only
+    header  = "| Rank | Team | Total |"
+    divider = "|---|---|---|"
     lines   = [header, divider]
     for r in rows:
         logo = player_logo_html(r["_un"], 24)
-        lines.append(
-            f"| {r['Rank']} | {logo} **{r['Team']}** | {r['Score Pts']} | {r['Winner Pts']} | "
-            f"{r['Wicket Pts']} | {r['BP Pts']} | {r['Streak Pts']} | {r['⚡ Exacts']} | **{r['Total']}** |"
-        )
+        lines.append(f"| {r['Rank']} | {logo} **{r['Team']}** | **{r['Total']}** |")
     st.markdown("\n".join(lines), unsafe_allow_html=True)
 
-    # Dataframe version with styling for better mobile view
+    # Full breakdown table below
     st.markdown("---")
+    st.caption("Full Breakdown")
     df_rows = [{k: v for k, v in r.items() if k != "_un"} for r in rows]
     df = pd.DataFrame(df_rows)
     def style_lb(df):
@@ -364,7 +363,7 @@ def page_draft_league():
 
     with tab1:
         st.subheader("🏆 Draft League Standings")
-        st.caption("Still a work in Progress")
+        st.caption("Based on ESPNcricinfo MVP points for each player in your squad")
 
         # Get all player points from DB
         all_player_pts = db().table("draft_player_points").select("*").execute().data or []
@@ -944,6 +943,7 @@ def page_submit_sp():
                 "submitted_at": datetime.now().strftime("%Y-%m-%d %H:%M")
             }).execute()
             st.success("✅ Prediction submitted!")
+            st.snow()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
