@@ -36,9 +36,9 @@ ALL_ROLES   = ["player", "admin"]
 
 # ── Draft League Teams ─────────────────────────────────────────────────────────
 DRAFT_TEAMS = {
-    "dinu":   {"name": "Dinesh Chargers",          "players": ["Abhishek Sharma","Finn Allen","Mayank Yadav","Romario Shepherd","Avesh Khan","Mitchell Marsh","Pathum Nissanka","Aquib Nabi","Kartik Tyagi","Naman Dhir","Prashant Veer","Urvil Patel"]},
+    "dinu":   {"name": "Dinesh Chargers",          "players": ["Abhishek Sharma","Finn Allen","Mayank Yadav","Romario Shepherd","Avesh Khan","Mitchell Marsh","Pathum Nissanka","Aquib Nabi","Kartik Tyagi","Naman Dhir","Urvil Patel","Prashant Veer"]},
     "yash":   {"name": "Yash Swaggers",            "players": ["Shubman Gill","Mohammed Siraj","Travis Head","Prabhsimran Singh","Rashid Khan","T Natarajan","Mohammed Shami","Rohit Sharma","Tim David","Mohsin Khan","Rahul Tripathi","Abdul Samad"]},
-    "sou":    {"name": "Sou Godfathers",           "players": ["Virat Kohli","Vaibhav Sooryavanshi","Nicholas Pooran","Riyan Parag","Kuldeep Yadav","Ravindra Jadeja","Krunal Pandya","Jofra Archer","Sherfane Rutherford","Jaydev Unadkat","Kartik Sharma","Matt Henry"]},
+    "sou":    {"name": "Sou Godfathers",           "players": ["Virat Kohli","Vaibhav Sooryavanshi","Nicholas Pooran","Riyan Parag","Kuldeep Yadav","Ravindra Jadeja","Krunal Pandya","Jofra Archer","Jaydev Unadkat","Kartik Sharma","Matt Henry","Sherfane Rutherford"]},
     "vamshi": {"name": "Vamshi Hurricanes",        "players": ["Shreyas Iyer","Angkrish Raghuvanshi","Yuzvendra Chahal","Harshal Patel","Jacob Bethell","Khaleel Ahmed","Aiden Markram","Ryan Rickelton","Ramandeep Singh","Zeeshan Ansari","Suyash Sharma","Sameer Rizvi"]},
     "minto":  {"name": "Minato Maniacs",           "players": ["Sanju Samson","Heinrich Klaasen","Sunil Narine","Dewald Brevis","Liam Livingstone","MS Dhoni","Venky Iyer","Deepak Chahar","Mukesh Kumar","Devdutt Padikkal","Karun Nair","Ashwani Kumar"]},
     "snehit": {"name": "Snehit Synergy",           "players": ["Yashasvi Jaiswal","Bhuvneshwar Kumar","Phil Salt","Jitesh Sharma","Aniket Verma","Josh Hazelwood","Will Jacks","Marco Jansen","Shashank Singh","Salil Arora","Mangesh Yadav","Vignesh Puthur"]},
