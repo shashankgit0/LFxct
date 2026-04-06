@@ -163,7 +163,8 @@ def get_open_matches():
 
 def is_season_locked():
     try:
-        res = db().table("app_settings").select("value").eq("key","season_locked").execute().data or []
+        client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        res = client.table("app_settings").select("value").eq("key","season_locked").execute().data or []
         return res[0]["value"] == "true" if res else False
     except:
         return False
