@@ -31,6 +31,13 @@ header {visibility: hidden;}
 [data-testid="stToolbar"] {visibility: hidden;}
 [data-testid="stDecoration"] {visibility: hidden;}
 section[data-testid="stSidebar"] {display: none !important;}
+/* Match color expanders */
+.match-done details { background: #2a0f0f !important; border: 1px solid #5a2020 !important; }
+.match-done summary { color: #ffbbbb !important; }
+.match-today details { background: #2a2a0a !important; border: 1px solid #5a5a20 !important; }
+.match-today summary { color: #ffee88 !important; }
+.match-open details { background: #0a2010 !important; border: 1px solid #1a5a30 !important; }
+.match-open summary { color: #88ffbb !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1044,18 +1051,12 @@ def page_lock_cancel():
     mm   = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(matches)}
     sorted_matches = sort_matches_today_first(matches)
     for m in sorted_matches:
-        today_tag = "  *" if is_today(m.get("match_date","")) else ""
         status = m.get("status","open")
-        if status in ["done","cancelled"]:
-            bg,tc = "#3a1a1a","#ffaaaa"
-        elif is_today(m.get("match_date","")):
-            bg,tc = "#3a3a0a","#ffee88"
-        else:
-            bg,tc = "#0a2a1a","#88ffbb"
-        expander_label = f"Match #{mm[m['match_name']]} — {m['match_name']} | {status.upper()}{'  *' if is_today(m.get('match_date','')) else ''}"
-        st.markdown(f'''<div style="background:{bg};border-radius:8px;padding:8px 14px;margin:3px 0;text-align:center">
-<span style="color:{tc};font-weight:bold;font-size:0.95em">{expander_label}</span></div>''', unsafe_allow_html=True)
-        with st.expander("", expanded=False):
+        star = "  *" if is_today(m.get("match_date","")) else ""
+        label = f"Match #{mm[m['match_name']]} — {m['match_name']} | {status.upper()}{star}"
+        css_class = "match-done" if status in ["done","cancelled"] else "match-today" if is_today(m.get("match_date","")) else "match-open"
+        st.markdown(f'<div class="{css_class}">', unsafe_allow_html=True)
+        with st.expander(label):
             c1,c2 = st.columns(2)
             with c1:
                 if m.get("bp_locked"):
@@ -1104,24 +1105,12 @@ def page_match_details():
     if not matches: st.info("No matches yet."); return
     mm      = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(matches)}
     sorted_matches = sort_matches_today_first(matches)
-    # Build colored match selector
-    match_html = '<div style="margin-bottom:8px">'
-    for mi, mx in enumerate(sorted_matches):
+    def match_label(mx):
         st2 = mx.get("status","open")
-        if st2 in ["done","cancelled"]:
-            bg,tc = "#3a1a1a","#ffaaaa"
-        elif is_today(mx.get("match_date","")):
-            bg,tc = "#3a3a0a","#ffee88"
-        else:
-            bg,tc = "#0a2a1a","#88ffbb"
-        today_star = " *" if is_today(mx.get("match_date","")) else ""
-        match_html += f'''<div style="background:{bg};border-radius:6px;padding:6px 12px;margin:2px 0;text-align:center">
-<span style="color:{tc};font-size:0.85em;font-weight:600">Match #{mm[mx["match_name"]]} — {mx["match_name"]} | {st2.upper()}{today_star}</span></div>'''
-    match_html += '</div>'
-    st.markdown(match_html, unsafe_allow_html=True)
-    options = [f"Match #{mm[m['match_name']]} — {m['match_name']}{'  *' if is_today(m.get('match_date','')) else ''}" for m in sorted_matches]
-    idx     = st.selectbox("Select Match", range(len(sorted_matches)), format_func=lambda i: options[i])
-    m       = sorted_matches[idx]
+        star = " *" if is_today(mx.get("match_date","")) else ""
+        return f"Match #{mm[mx['match_name']]} — {mx['match_name']} | {st2.upper()}{star}"
+    idx = st.selectbox("Select Match", range(len(sorted_matches)), format_func=lambda i: match_label(sorted_matches[i]))
+    m   = sorted_matches[idx]
     st.markdown(f"### 🏏 Match #{mm[m['match_name']]} — {m['match_name']} | {m.get('match_date','')}")
     c1,c2,c3 = st.columns(3)
     c1.metric("BP","🔒 Locked" if m.get("bp_locked") else "🟢 Open")
