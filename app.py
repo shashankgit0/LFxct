@@ -20,6 +20,9 @@ def player_logo_html(username, size=28):
     url = logo_url(username)
     return f'<img src="{url}" width="{size}" height="{size}" style="border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:6px;" onerror="this.style.display=\'none\'">'
 
+def centered_title(text):
+    st.markdown(f"<h1 style='text-align:center'>{text}</h1>", unsafe_allow_html=True)
+
 st.markdown("""
 <style>
 #MainMenu {visibility: hidden;}
@@ -34,18 +37,17 @@ section[data-testid="stSidebar"] {display: none !important;}
 ADMIN_ROLES = ["admin"]
 ALL_ROLES   = ["player", "admin"]
 
-# ── Draft League Teams ─────────────────────────────────────────────────────────
 DRAFT_TEAMS = {
-    "dinu":   {"name": "Dinesh Chargers",          "players": ["Abhishek Sharma","Finn Allen","Mayank Yadav","Romario Shepherd","Avesh Khan","Mitchell Marsh","Pathum Nissanka","Aquib Nabi","Kartik Tyagi","Naman Dhir","Prashant Veer","Urvil Patel"]},
+    "dinu":   {"name": "Dinesh Chargers",          "players": ["Abhishek Sharma","Finn Allen","Mayank Yadav","Romario Shepherd","Avesh Khan","Mitchell Marsh","Pathum Nissanka","Aquib Nabi","Kartik Tyagi","Naman Dhir","Urvil Patel","Prashant Veer"]},
     "yash":   {"name": "Yash Swaggers",            "players": ["Shubman Gill","Mohammed Siraj","Travis Head","Prabhsimran Singh","Rashid Khan","T Natarajan","Mohammed Shami","Rohit Sharma","Tim David","Mohsin Khan","Rahul Tripathi","Abdul Samad"]},
-    "sou":    {"name": "Sou Godfathers",           "players": ["Virat Kohli","Vaibhav Sooryavanshi","Nicholas Pooran","Riyan Parag","Kuldeep Yadav","Ravindra Jadeja","Krunal Pandya","Jofra Archer","Sherfane Rutherford","Jaydev Unadkat","Kartik Sharma","Matt Henry"]},
+    "sou":    {"name": "Sou Godfathers",           "players": ["Virat Kohli","Vaibhav Sooryavanshi","Nicholas Pooran","Riyan Parag","Kuldeep Yadav","Ravindra Jadeja","Krunal Pandya","Jofra Archer","Jaydev Unadkat","Kartik Sharma","Matt Henry","Sherfane Rutherford"]},
     "vamshi": {"name": "Vamshi Hurricanes",        "players": ["Shreyas Iyer","Angkrish Raghuvanshi","Yuzvendra Chahal","Harshal Patel","Jacob Bethell","Khaleel Ahmed","Aiden Markram","Ryan Rickelton","Ramandeep Singh","Zeeshan Ansari","Suyash Sharma","Sameer Rizvi"]},
     "minto":  {"name": "Minato Maniacs",           "players": ["Sanju Samson","Heinrich Klaasen","Sunil Narine","Dewald Brevis","Liam Livingstone","MS Dhoni","Venky Iyer","Deepak Chahar","Mukesh Kumar","Devdutt Padikkal","Karun Nair","Ashwani Kumar"]},
     "snehit": {"name": "Snehit Synergy",           "players": ["Yashasvi Jaiswal","Bhuvneshwar Kumar","Phil Salt","Jitesh Sharma","Aniket Verma","Josh Hazelwood","Will Jacks","Marco Jansen","Shashank Singh","Salil Arora","Mangesh Yadav","Vignesh Puthur"]},
     "shank":  {"name": "Shank Tacticos",           "players": ["Hardik Pandya","Noor Ahmad","Tilak Varma","Priyansh Arya","Varun Chakaravarthy","Dhruv Jurel","Donovan Ferreira","Marcus Stoinis","Anukul Roy","Nitish Rana","Vaibhav Arora","Matheesha Pathirana"]},
     "visu":   {"name": "Visu Vijayasena",          "players": ["Sai Sudharsan","Rishabh Pant","Shivam Dube","Washington Sundar","Nehal Wadhera","Prasidh Krishna","R Sai Kishore","Jos Buttler","Nandre Burger","Sarfaraz Khan","Matthew Breetzke","Azmatullah Omarzai"]},
     "kartik": {"name": "Kartik Kryptonites",       "players": ["Jasprit Bumrah","Ishan Kishan","Tristan Stubbs","Rajat Patidar","Cooper Connolly","Kagiso Rabada","Nitish Kumar Reddy","Glenn Phillips","Ajinkya Rahane","Abhishek Porel","Mayank Markande","Harpreet Brar"]},
-    "vvs":    {"name": "Satwik Quantum Crusaders", "players": ["Axar Patel","Cameron Green","Arshdeep Singh","Shimron Hetmyer","Josh Inglis","Ayush Badoni","Sandeep Sharma","Mitchell Santner","Digvesh Singh","Ruturaj Gaikwad","Shivang Kumar","Vipraj Nigam"]},
+    "vvs":    {"name": "Satwik Quantum Crusaders", "players": ["Axar Patel","Cameron Green","Arshdeep Singh","Shimron Hetmyer","Josh Inglis","Ayush Mhatre","Sandeep Sharma","Mitchell Santner","Digvesh Singh","Ruturaj Gaikwad","Shivang Kumar","Vipraj Nigam"]},
     "hari":   {"name": "Ruthvenger Legends",       "players": ["K L Rahul","Surya Kumar Yadav","Quinton de Kock","Trent Boult","David Miller","Ravi Bishnoi","Rinku Singh","Lungi Ngidi","Ashutosh Sharma","Rahul Chahar","Shardul Thakur","Rahul Tewatia"]},
 }
 
@@ -103,6 +105,7 @@ BP_POOL = {
         {"key": "bowl_top_s", "template": "{name} to dismiss the top scorer",              "note": None},
         {"key": "bowl_exp",   "template": "{name} to be the most expensive bowler",        "note": None},
         {"key": "bowl_b2b",   "template": "{name} to take 2 wickets in 1 over",            "note": None},
+        {"key": "bowl_low_eco","template": "{name} bowler to have the lowest economy for their team", "note": "Min 2 overs bowled"},
     ],
     "🔥 Team": [
         {"key": "team_6s11",   "template": "{name} team to hit 11+ sixes",                 "note": None},
@@ -152,21 +155,20 @@ def caps(text):
     return text.strip().upper() if text else ""
 
 def get_matches():
-    # Always ordered by match_number for consistency
     return db().table("matches").select("*").order("match_number").execute().data or []
 
 def get_open_matches():
-    return [m for m in get_matches() if m.get("status") not in ["done", "cancelled"]]
+    return [m for m in get_matches() if m.get("status") not in ["done","cancelled"]]
 
 def is_season_locked():
     try:
-        res = db().table("app_settings").select("value").eq("key", "season_locked").execute().data or []
+        res = db().table("app_settings").select("value").eq("key","season_locked").execute().data or []
         return res[0]["value"] == "true" if res else False
     except:
         return False
 
 def login(username, password):
-    res = db().table("users").select("*").eq("username", username).eq("password", password).execute()
+    res = db().table("users").select("*").eq("username",username).eq("password",password).execute()
     return res.data[0] if res.data else None
 
 def streak_bonus(n):
@@ -179,14 +181,14 @@ def get_match_teams(match_name):
     return []
 
 def calc_streak_from_preds(username, all_preds):
-    my_preds = [p for p in all_preds if p.get("player") == username and p.get("actual_score") is not None]
+    my_preds = [p for p in all_preds if p.get("player")==username and p.get("actual_score") is not None]
     done = sorted(my_preds, key=lambda x: x.get("submitted_at") or "", reverse=True)
     streak = 0
     for p in done:
-        match_preds = [x for x in all_preds if x.get("match_name") == p["match_name"] and x.get("actual_score") is not None]
+        match_preds = [x for x in all_preds if x.get("match_name")==p["match_name"] and x.get("actual_score") is not None]
         if not match_preds: break
-        min_diff = min(abs(int(x.get("predicted_score") or 0) - int(x.get("actual_score") or 0)) for x in match_preds)
-        my_diff  = abs(int(p.get("predicted_score") or 0) - int(p.get("actual_score") or 0))
+        min_diff = min(abs(int(x.get("predicted_score") or 0)-int(x.get("actual_score") or 0)) for x in match_preds)
+        my_diff  = abs(int(p.get("predicted_score") or 0)-int(p.get("actual_score") or 0))
         if my_diff == min_diff: streak += 1
         else: break
     return streak
@@ -194,87 +196,86 @@ def calc_streak_from_preds(username, all_preds):
 def calc_sp_wins(username, all_preds, match_names):
     wins = 0
     for mn in match_names:
-        mp = [p for p in all_preds if p["match_name"] == mn and p.get("actual_score") is not None]
+        mp = [p for p in all_preds if p["match_name"]==mn and p.get("actual_score") is not None]
         if not mp: continue
-        my = next((p for p in mp if p["player"] == username), None)
+        my = next((p for p in mp if p["player"]==username), None)
         if not my: continue
-        my_d  = abs(int(my.get("predicted_score") or 0) - int(my.get("actual_score") or 0))
-        min_d = min(abs(int(p.get("predicted_score") or 0) - int(p.get("actual_score") or 0)) for p in mp)
+        my_d  = abs(int(my.get("predicted_score") or 0)-int(my.get("actual_score") or 0))
+        min_d = min(abs(int(p.get("predicted_score") or 0)-int(p.get("actual_score") or 0)) for p in mp)
         if my_d == min_d: wins += 1
     return wins
 
 def calc_rank(username, mn, all_preds):
-    mp = [p for p in all_preds if p["match_name"] == mn and p.get("actual_score") is not None]
+    mp = [p for p in all_preds if p["match_name"]==mn and p.get("actual_score") is not None]
     if not mp: return None
-    my = next((p for p in mp if p["player"] == username), None)
+    my = next((p for p in mp if p["player"]==username), None)
     if not my: return None
-    my_d  = abs(int(my.get("predicted_score") or 0) - int(my.get("actual_score") or 0))
-    diffs = sorted([abs(int(p.get("predicted_score") or 0) - int(p.get("actual_score") or 0)) for p in mp])
-    return diffs.index(my_d) + 1 if my_d in diffs else 99
+    my_d  = abs(int(my.get("predicted_score") or 0)-int(my.get("actual_score") or 0))
+    diffs = sorted([abs(int(p.get("predicted_score") or 0)-int(p.get("actual_score") or 0)) for p in mp])
+    return diffs.index(my_d)+1 if my_d in diffs else 99
 
 def breakdown_sp_from_pred(p, all_match_preds):
-    act_score  = p.get("actual_score")
-    act_winner = p.get("actual_winner", "")
-    act_wkt    = p.get("actual_wickets")
-    pred_score = int(p.get("predicted_score") or 0)
-    pred_winner= p.get("predicted_winner", "")
-    pred_wkt   = int(p.get("predicted_wickets") or 0)
-    if act_score is None:
-        return 0, 0, 0
-    my_diff  = abs(pred_score - int(act_score))
-    min_diff = min(abs(int(x.get("predicted_score") or 0) - int(act_score)) for x in all_match_preds if x.get("actual_score") is not None)
+    act_score   = p.get("actual_score")
+    act_winner  = p.get("actual_winner","")
+    act_wkt     = p.get("actual_wickets")
+    pred_score  = int(p.get("predicted_score") or 0)
+    pred_winner = p.get("predicted_winner","")
+    pred_wkt    = int(p.get("predicted_wickets") or 0)
+    if act_score is None: return 0,0,0
+    my_diff  = abs(pred_score-int(act_score))
+    min_diff = min(abs(int(x.get("predicted_score") or 0)-int(act_score)) for x in all_match_preds if x.get("actual_score") is not None)
     is_win   = my_diff == min_diff
     is_exact = pred_score == int(act_score)
-    corr_win = caps(pred_winner) == caps(act_winner)
-    corr_wkt = is_win and pred_wkt == int(act_wkt or -1)
-    return (6 if is_exact else 4 if is_win else 0), (2 if corr_win else 0), (1 if corr_wkt else 0)
+    corr_win = caps(pred_winner)==caps(act_winner)
+    corr_wkt = is_win and pred_wkt==int(act_wkt or -1)
+    return (6 if is_exact else 4 if is_win else 0),(2 if corr_win else 0),(1 if corr_wkt else 0)
 
 def award_sp_points(match_sel, actual_score, actual_wickets, actual_winner):
     actual_winner = caps(actual_winner)
     db().table("matches").update({
-        "status": "done", "actual_score": actual_score,
-        "actual_wickets": actual_wickets, "actual_winner": actual_winner
-    }).eq("match_name", match_sel).execute()
-    preds = db().table("predictions").select("*").eq("match_name", match_sel).execute().data or []
+        "status":"done","actual_score":actual_score,
+        "actual_wickets":actual_wickets,"actual_winner":actual_winner
+    }).eq("match_name",match_sel).execute()
+    preds = db().table("predictions").select("*").eq("match_name",match_sel).execute().data or []
     if not preds: return
     for p in preds:
-        p["diff"] = abs(int(p.get("predicted_score") or 0) - actual_score)
+        p["diff"] = abs(int(p.get("predicted_score") or 0)-actual_score)
     min_diff = min(p["diff"] for p in preds)
     for p in preds:
-        is_win   = p["diff"] == min_diff
-        is_exact = int(p.get("predicted_score") or 0) == actual_score
-        corr_win = caps(p.get("predicted_winner", "")) == actual_winner
-        corr_wkt = is_win and int(p.get("predicted_wickets") or -1) == actual_wickets
-        score_pts  = 6 if is_exact else (4 if is_win else 0)
-        winner_pts = 2 if corr_win else 0
-        wicket_pts = 1 if corr_wkt else 0
+        is_win   = p["diff"]==min_diff
+        is_exact = int(p.get("predicted_score") or 0)==actual_score
+        corr_win = caps(p.get("predicted_winner",""))==actual_winner
+        corr_wkt = is_win and int(p.get("predicted_wickets") or -1)==actual_wickets
+        sp = 6 if is_exact else (4 if is_win else 0)
+        wp = 2 if corr_win else 0
+        wkp = 1 if corr_wkt else 0
         db().table("predictions").update({
-            "actual_score": actual_score, "actual_wickets": actual_wickets,
-            "actual_winner": actual_winner, "points_awarded": score_pts + winner_pts + wicket_pts
-        }).eq("id", p["id"]).execute()
-    winners = [p for p in preds if p["diff"] == min_diff]
+            "actual_score":actual_score,"actual_wickets":actual_wickets,
+            "actual_winner":actual_winner,"points_awarded":sp+wp+wkp
+        }).eq("id",p["id"]).execute()
+    winners = [p for p in preds if p["diff"]==min_diff]
     all_preds_full = db().table("predictions").select("*").execute().data or []
     for w in winners:
         u = w["player"]
-        prev_preds = [p for p in all_preds_full if p.get("match_name") != match_sel]
+        prev_preds = [p for p in all_preds_full if p.get("match_name")!=match_sel]
         streak = calc_streak_from_preds(u, prev_preds)
-        new_streak = streak + 1
+        new_streak = streak+1
         bonus = streak_bonus(new_streak)
         if bonus > 0:
             db().table("streaks").insert({
-                "player": u, "match_name": match_sel,
-                "streak_count": new_streak, "bonus_points": bonus
+                "player":u,"match_name":match_sel,
+                "streak_count":new_streak,"bonus_points":bonus
             }).execute()
 
 def get_pages(role):
     if role == "guest":
-        return ["🏆 Leaderboard", "📊 Overall Stats", "👤 Player Stats", "🏅 Hall of Fame",
-                "🏏 Draft League", "📋 Match Details", "📖 How to Score", "🌟 Season Predictions"]
-    pages = ["🏆 Leaderboard", "📊 Overall Stats", "👤 Player Stats", "🏅 Hall of Fame",
-             "🏏 Draft League", "📋 Match Details", "📖 How to Score", "🌟 Season Predictions",
-             "🎱 BP Pool", "🔮 Score Prediction"]
+        return ["🏆 Leaderboard","📊 Overall Stats","👤 Player Stats","🏅 Hall of Fame",
+                "🏏 Draft League","📋 Match Details","📖 How to Score","🌟 Season Predictions"]
+    pages = ["🏆 Leaderboard","📊 Overall Stats","👤 Player Stats","🏅 Hall of Fame",
+             "🏏 Draft League","📋 Match Details","📖 How to Score","🌟 Season Predictions",
+             "🎱 BP Pool","🔮 Score Prediction"]
     if role == "admin":
-        pages += ["🏆 Enter Results", "📝 BP Results", "🔒 Lock / Cancel", "⚙️ Admin Panel"]
+        pages += ["🏆 Enter Results","📝 BP Results","🔒 Lock / Cancel","⚙️ Admin Panel"]
     return pages
 
 
@@ -282,7 +283,7 @@ def get_pages(role):
 # LEADERBOARD
 # ══════════════════════════════════════════════════════════════════════════════
 def page_leaderboard():
-    st.title("🏆 LFxCT Leaderboard")
+    st.markdown("<h1 style='text-align:center'>🏆 LFxCT Leaderboard</h1>", unsafe_allow_html=True)
     st.markdown("---")
     users = get_playing_users()
     if not users:
@@ -297,42 +298,33 @@ def page_leaderboard():
     for u in users:
         un   = u["username"]
         team = u.get("team_name") or u.get("display_name") or un
-        my_preds = [p for p in all_preds if p["player"] == un]
-
+        my_preds = [p for p in all_preds if p["player"]==un]
         score_pts = winner_pts = wicket_pts = 0
         for p in my_preds:
             if p.get("actual_score") is not None:
-                match_preds = [x for x in all_preds if x["match_name"] == p["match_name"] and x.get("actual_score") is not None]
-                sp, wp, wkp = breakdown_sp_from_pred(p, match_preds)
+                match_preds = [x for x in all_preds if x["match_name"]==p["match_name"] and x.get("actual_score") is not None]
+                sp,wp,wkp = breakdown_sp_from_pred(p, match_preds)
                 score_pts += sp; winner_pts += wp; wicket_pts += wkp
-
-        bp_pts     = int(sum(float(b.get("points_awarded") or 0) for b in all_bps     if b["player"] == un))
-        streak_pts = int(sum(float(s.get("bonus_points")   or 0) for s in all_streaks if s["player"] == un))
-        total      = score_pts + winner_pts + wicket_pts + bp_pts + streak_pts
+        bp_pts     = int(sum(float(b.get("points_awarded") or 0) for b in all_bps     if b["player"]==un))
+        streak_pts = int(sum(float(s.get("bonus_points")   or 0) for s in all_streaks if s["player"]==un))
+        total      = score_pts+winner_pts+wicket_pts+bp_pts+streak_pts
         exacts     = sum(1 for p in my_preds if p.get("actual_score") is not None
-                        and int(p.get("predicted_score") or 0) == int(p.get("actual_score") or -1))
-
+                        and int(p.get("predicted_score") or 0)==int(p.get("actual_score") or -1))
         rows.append({
-            "_un":        un,
-            "Rank":       "",
-            "Team":       team,
-            "Score Pts":  score_pts,
-            "Winner Pts": winner_pts,
-            "Wicket Pts": wicket_pts,
-            "BP Pts":     bp_pts,
-            "Streak Pts": streak_pts,
-            "⚡ Exacts":  exacts,
-            "Total":      total,
+            "_un": un, "Rank":"", "Team": team,
+            "Score Pts": score_pts, "Winner Pts": winner_pts, "Wicket Pts": wicket_pts,
+            "BP Pts": bp_pts, "Streak Pts": streak_pts,
+            "⚡ Exacts": exacts, "Total": total,
         })
 
     rows.sort(key=lambda x: x["Total"], reverse=True)
     for i, r in enumerate(rows):
-        r["Rank"] = ["🥇", "🥈", "🥉"][i] if i < 3 else str(i + 1)
+        r["Rank"] = ["🥇","🥈","🥉"][i] if i < 3 else str(i+1)
 
-    # ── Podium (top 3) ────────────────────────────────────────────────────────
+    # ── Podium (top 3) ──
     if len(rows) >= 3:
-        p1, p2, p3 = rows[0], rows[1], rows[2]
-        def podium_card(r, height, border_color, medal, bg):
+        p1,p2,p3 = rows[0],rows[1],rows[2]
+        def podium_card(r, height, border_color, medal, bg, text_color):
             logo_url_str = logo_url(r["_un"])
             return f"""
 <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
@@ -342,199 +334,138 @@ border:2px solid {border_color};padding:12px 8px 10px 8px;box-sizing:border-box;
        style="border-radius:50%;object-fit:cover;border:2px solid {border_color};margin-bottom:6px;"
        onerror="this.style.display='none'">
   <div style="font-size:1.6em;line-height:1">{medal}</div>
-  <div style="font-size:0.75em;font-weight:bold;color:#fff;text-align:center;
+  <div style="font-size:0.75em;font-weight:bold;color:{text_color};text-align:center;
        margin-top:4px;word-break:break-word;line-height:1.2">{r["Team"]}</div>
   <div style="font-size:1.1em;font-weight:bold;color:{border_color};margin-top:6px">{r["Total"]} pts</div>
 </div>"""
         podium_html = f"""
 <div style="display:flex;align-items:flex-end;justify-content:center;gap:6px;
 max-width:480px;margin:0 auto 8px auto;padding:0 4px;box-sizing:border-box;">
-  {podium_card(p2, 160, "#C0C0C0", "🥈", "#1a1a2e")}
-  {podium_card(p1, 200, "#FFD700", "🥇", "#1a2a0a")}
-  {podium_card(p3, 130, "#CD7F32", "🥉", "#1a1a2e")}
+  {podium_card(p2, 160, "#A8A8A8", "🥈", "#2a2a2a", "#e0e0e0")}
+  {podium_card(p1, 200, "#FFD700", "🥇", "#2a2200", "#FFD700")}
+  {podium_card(p3, 130, "#CD7F32", "🥉", "#2a1800", "#cd9a60")}
 </div>"""
         st.markdown(podium_html, unsafe_allow_html=True)
 
-    # ── Positions 4 onwards ───────────────────────────────────────────────────
+    # ── Positions 4+ with gradient ──
     if len(rows) > 3:
         rest = rows[3:]
         total_rest = len(rest)
         rest_html = '<div style="max-width:480px;margin:0 auto;">'
         for i, r in enumerate(rest):
             logo_url_str = logo_url(r["_un"])
-            pos = i + 4
-            # gradient: 0=darkgreen, middle=orange, end=red
-            t = i / max(total_rest - 1, 1)
+            pos = i+4
+            t = i/max(total_rest-1,1)
             if t < 0.5:
-                t2 = t / 0.5
-                bg_r = int(20 + t2 * 40)
-                bg_g = int(55 - t2 * 20)
-                bg_b = int(10)
-                txt_r = int(80 + t2 * 175)
-                txt_g = int(220 - t2 * 100)
-                txt_b = int(80 - t2 * 60)
+                t2 = t/0.5
+                bg  = f"rgb({int(20+t2*40)},{int(55-t2*20)},10)"
+                txt = f"rgb({int(80+t2*175)},{int(220-t2*100)},{int(80-t2*60)})"
             else:
-                t2 = (t - 0.5) / 0.5
-                bg_r = int(60 + t2 * 40)
-                bg_g = int(35 - t2 * 30)
-                bg_b = int(10 - t2 * 5)
-                txt_r = int(255)
-                txt_g = int(120 - t2 * 100)
-                txt_b = int(20 - t2 * 15)
-            bg_col  = f"rgb({bg_r},{bg_g},{bg_b})"
-            txt_col = f"rgb({txt_r},{txt_g},{txt_b})"
+                t2 = (t-0.5)/0.5
+                bg  = f"rgb({int(60+t2*40)},{int(35-t2*30)},{int(10-t2*5)})"
+                txt = f"rgb(255,{int(120-t2*100)},{int(20-t2*15)})"
             rest_html += f"""
 <div style="display:flex;align-items:center;justify-content:space-between;
-padding:10px 14px;margin:4px 0;border-radius:8px;background:{bg_col};
-box-sizing:border-box">
+padding:10px 14px;margin:4px 0;border-radius:8px;background:{bg};box-sizing:border-box">
   <div style="display:flex;align-items:center;gap:10px">
-    <span style="color:{txt_col};font-weight:bold;min-width:20px">{pos}</span>
+    <span style="color:{txt};font-weight:bold;min-width:20px">{pos}</span>
     <img src="{logo_url_str}" width="32" height="32"
          style="border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">
     <span style="color:#ffffff;font-weight:600;font-size:0.9em">{r["Team"]}</span>
   </div>
-  <span style="color:{txt_col};font-weight:bold;font-size:1em">{r["Total"]} pts</span>
+  <span style="color:{txt};font-weight:bold;font-size:1em">{r["Total"]} pts</span>
 </div>"""
         rest_html += "</div>"
         st.markdown(rest_html, unsafe_allow_html=True)
-
-    # ── Full breakdown table ───────────────────────────────────────────────────
-    st.markdown("---")
-    st.caption("Full Breakdown")
-    df_rows = [{k: v for k, v in r.items() if k != "_un"} for r in rows]
-    df = pd.DataFrame(df_rows)
-    def style_lb(df):
-        s = pd.DataFrame("", index=df.index, columns=df.columns)
-        s["Total"] = "background-color:#1a3a1a;color:#90ee90;font-weight:bold"
-        s["Team"]  = "background-color:#1a1a2e;font-weight:bold"
-        return s
-    st.dataframe(df.style.apply(style_lb, axis=None), use_container_width=True, hide_index=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # DRAFT LEAGUE
 # ══════════════════════════════════════════════════════════════════════════════
 def page_draft_league():
-    st.title("🏏 Draft League")
+    st.markdown("<h1 style='text-align:center'>🏏 Draft League</h1>", unsafe_allow_html=True)
     st.markdown("---")
-
-    tab1, tab2 = st.tabs(["🏆 Draft Leaderboard", "👥 Team Squads"])
+    tab1, tab2 = st.tabs(["🏆 Draft Leaderboard","👥 Team Squads"])
 
     with tab1:
         st.subheader("🏆 Draft League Standings")
         st.caption("Based on ESPNcricinfo MVP points for each player in your squad")
-
-        # Get all player points from DB
         all_player_pts = db().table("draft_player_points").select("*").execute().data or []
         pts_map = {row["player_name"].lower(): float(row.get("mvp_points") or 0) for row in all_player_pts}
-
         if not pts_map:
             st.info("No MVP points loaded yet. Admin needs to update player points.")
-
-        # 12th player excluded from total — only playing 11 count
         team_rows = []
         for username, team_data in DRAFT_TEAMS.items():
-            team_name = team_data["name"]
             players   = team_data["players"]
             playing11 = players[:11]
-            sub       = players[11] if len(players) > 11 else None
-            total     = sum(pts_map.get(p.lower(), 0) for p in playing11)
-            scored    = sum(1 for p in playing11 if pts_map.get(p.lower(), 0) > 0)
-            sub_pts   = round(pts_map.get(sub.lower(), 0), 1) if sub else 0
+            sub       = players[11] if len(players)>11 else None
+            total     = sum(pts_map.get(p.lower(),0) for p in playing11)
+            scored    = sum(1 for p in playing11 if pts_map.get(p.lower(),0)>0)
+            sub_pts   = round(pts_map.get(sub.lower(),0),1) if sub else 0
             team_rows.append({
-                "_username":      username,
-                "Team":           team_name,
-                "MVP Total":      round(total, 1),
+                "_username": username,
+                "Team": team_data["name"],
+                "MVP Total": round(total,1),
                 "Players Scored": f"{scored}/11",
-                "_sub":           sub,
-                "_sub_pts":       sub_pts,
+                "_sub": sub, "_sub_pts": sub_pts,
             })
-
         team_rows.sort(key=lambda x: x["MVP Total"], reverse=True)
-        for i, r in enumerate(team_rows):
-            r["Rank"] = ["🥇","🥈","🥉"][i] if i < 3 else str(i+1)
-
+        for i,r in enumerate(team_rows):
+            r["Rank"] = ["🥇","🥈","🥉"][i] if i<3 else str(i+1)
         header  = "| Rank | Team | MVP Total | Players Scored | 12th (Sub) |"
         divider = "|---|---|---|---|---|"
         lines   = [header, divider]
         for r in team_rows:
-            logo    = player_logo_html(r["_username"], 24)
+            logo    = player_logo_html(r["_username"],24)
             sub_str = f"{r['_sub']} ({r['_sub_pts']} pts)" if r["_sub"] else "-"
             lines.append(f"| {r['Rank']} | {logo} **{r['Team']}** | **{r['MVP Total']}** | {r['Players Scored']} | {sub_str} |")
         st.markdown("\n".join(lines), unsafe_allow_html=True)
 
-        st.markdown("")
-        if st.session_state.user.get("role") == "admin":
-            st.markdown("---")
-            st.caption("Last updated: " + (all_player_pts[0].get("updated_at","Never") if all_player_pts else "Never"))
-
     with tab2:
         st.subheader("👥 Team Squads & Points")
         all_player_pts = db().table("draft_player_points").select("*").execute().data or []
-        pts_map  = {row["player_name"].lower(): float(row.get("mvp_points") or 0) for row in all_player_pts}
+        pts_map   = {row["player_name"].lower(): float(row.get("mvp_points") or 0) for row in all_player_pts}
         stats_map = {row["player_name"].lower(): row for row in all_player_pts}
-
-        selected_team = st.selectbox("Select Team", [v["name"] for v in DRAFT_TEAMS.values()])
-        team_username = next((k for k, v in DRAFT_TEAMS.items() if v["name"] == selected_team), None)
-
+        selected_team = st.selectbox("Select Team",[v["name"] for v in DRAFT_TEAMS.values()])
+        team_username = next((k for k,v in DRAFT_TEAMS.items() if v["name"]==selected_team), None)
         if team_username:
             team_data = DRAFT_TEAMS[team_username]
             players   = team_data["players"]
             playing11 = players[:11]
-            sub       = players[11] if len(players) > 11 else None
-            total_mvp = round(sum(pts_map.get(p.lower(), 0) for p in playing11), 1)
-
-            st.markdown(f'<div style="display:flex;align-items:center;gap:12px">{player_logo_html(team_username, 48)}<h3 style="margin:0">{selected_team}</h3></div>', unsafe_allow_html=True)
+            sub       = players[11] if len(players)>11 else None
+            total_mvp = round(sum(pts_map.get(p.lower(),0) for p in playing11),1)
+            st.markdown(f'<div style="display:flex;align-items:center;gap:12px">{player_logo_html(team_username,48)}<h3 style="margin:0">{selected_team}</h3></div>', unsafe_allow_html=True)
             st.metric("Total MVP Points (Playing 11)", total_mvp)
             st.markdown("---")
-
             st.markdown("**🏏 Playing 11**")
             def player_stat_row(p):
-                s = stats_map.get(p.lower(), {})
-                pts = round(float(s.get("mvp_points") or 0), 1)
-                return {
-                    "Rank":   int(s.get("ipl_rank") or 0) or "-",
-                    "Player": p,
-                    "Pts":    f"{pts:.1f}",
-                    "Mat":    int(s.get("mat") or 0),
-                    "Wkts":   int(s.get("wkts") or 0),
-                    "Dots":   int(s.get("dots") or 0),
-                    "4s":     int(s.get("fours") or 0),
-                    "6s":     int(s.get("sixes") or 0),
-                }
-
-            player_rows = [player_stat_row(p) for p in playing11]
-            player_rows.sort(key=lambda x: float(x["Pts"]), reverse=True)
-            df_players = pd.DataFrame(player_rows)
-
-            def style_players(df):
+                s   = stats_map.get(p.lower(),{})
+                pts = round(float(s.get("mvp_points") or 0),1)
+                return {"Rank": int(s.get("ipl_rank") or 0) or "-","Player":p,"Pts":f"{pts:.1f}",
+                        "Mat":int(s.get("mat") or 0),"Wkts":int(s.get("wkts") or 0),
+                        "Dots":int(s.get("dots") or 0),"4s":int(s.get("fours") or 0),"6s":int(s.get("sixes") or 0)}
+            player_rows = sorted([player_stat_row(p) for p in playing11], key=lambda x: float(x["Pts"]), reverse=True)
+            df_p = pd.DataFrame(player_rows)
+            def style_p(df):
                 s = pd.DataFrame("", index=df.index, columns=df.columns)
                 s["Pts"] = "background-color:#1a3a1a;color:#90ee90;font-weight:bold"
                 return s
-            st.dataframe(df_players.style.apply(style_players, axis=None),
-                        use_container_width=True, hide_index=True)
-
+            st.dataframe(df_p.style.apply(style_p,axis=None), use_container_width=True, hide_index=True)
             if sub:
                 st.markdown("---")
-                sub_row = player_stat_row(sub)
-                st.markdown(
-                    f"**🔄 12th Player (Sub):** {sub} — "
-                    f"**{sub_row['Pts']} pts** | "
-                    f"Mat:{sub_row['Mat']} Wkts:{sub_row['Wkts']} "
-                    f"Dots:{sub_row['Dots']} 4s:{sub_row['4s']} 6s:{sub_row['6s']} "
-                    f"*(not counted in total)*"
-                )
+                sr = player_stat_row(sub)
+                st.markdown(f"**🔄 12th Player (Sub):** {sub} — **{sr['Pts']} pts** | Mat:{sr['Mat']} Wkts:{sr['Wkts']} Dots:{sr['Dots']} 4s:{sr['4s']} 6s:{sr['6s']} *(not counted in total)*")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # OVERALL STATS
 # ══════════════════════════════════════════════════════════════════════════════
 def page_overall_stats():
-    st.title("📊 Overall Stats")
+    st.markdown("<h1 style='text-align:center'>📊 Overall Stats</h1>", unsafe_allow_html=True)
     st.markdown("---")
     users   = get_playing_users()
     matches = get_matches()
-    done    = [m for m in matches if m.get("status") == "done"]
+    done    = [m for m in matches if m.get("status")=="done"]
     if not users or not done:
         st.info("Not enough data yet.")
         return
@@ -542,30 +473,62 @@ def page_overall_stats():
     all_preds   = db().table("predictions").select("*").execute().data or []
     all_bps     = db().table("pool_bps").select("*").execute().data or []
 
-    tab1, tab2, tab3, tab4 = st.tabs(["🎯 Accuracy", "🏅 Podium Tracker", "⚔️ Head to Head", "📋 Full Table"])
+    tab1, tab2, tab3, tab4 = st.tabs(["📋 Full Leaderboard","🎯 Accuracy","🏅 Podium Tracker","⚔️ Head to Head"])
 
     with tab1:
+        st.subheader("📋 Full Leaderboard")
+        all_streaks = db().table("streaks").select("*").execute().data or []
+        full = []
+        for u in users:
+            un   = u["username"]
+            team = u.get("team_name") or un
+            up   = [p for p in all_preds if p["player"]==un and p.get("actual_score") is not None]
+            ubps = [b for b in all_bps if b["player"]==un]
+            score_pts = winner_pts = wicket_pts = 0
+            for p in up:
+                mp = [x for x in all_preds if x["match_name"]==p["match_name"] and x.get("actual_score") is not None]
+                sp,wp,wkp = breakdown_sp_from_pred(p,mp)
+                score_pts+=sp; winner_pts+=wp; wicket_pts+=wkp
+            bp_total  = int(sum(float(b.get("points_awarded") or 0) for b in ubps))
+            str_total = int(sum(float(s.get("bonus_points") or 0) for s in all_streaks if s["player"]==un))
+            total = score_pts+winner_pts+wicket_pts+bp_total+str_total
+            full.append({
+                "Team": team, "Total": total,
+                "Score Pts": score_pts,"Winner Pts": winner_pts,"Wicket Pts": wicket_pts,
+                "BP Pts": bp_total,"Streak Pts": str_total,
+                "SP Wins": calc_sp_wins(un,all_preds,match_names),
+                "BP ✅": sum(1 for b in ubps if b.get("result")=="correct"),
+                "BP ❌": sum(1 for b in ubps if b.get("result")=="wrong"),
+                "Exacts": sum(1 for p in up if int(p.get("predicted_score") or 0)==int(p.get("actual_score") or -1)),
+                "Margin of Error": sum(abs(int(p.get("predicted_score") or 0)-int(p.get("actual_score") or 0)) for p in up),
+                "Attended": len(set(p["match_name"] for p in all_preds if p["player"]==un)),
+                "Streak": calc_streak_from_preds(un,all_preds),
+            })
+        full.sort(key=lambda x: x["Total"], reverse=True)
+        st.dataframe(pd.DataFrame(full), use_container_width=True, hide_index=True)
+
+    with tab2:
         st.subheader("🎯 SP Breakdown")
         sp_rows = []
         for u in users:
             un   = u["username"]
             team = u.get("team_name") or un
-            up   = [p for p in all_preds if p["player"] == un and p.get("actual_score") is not None]
-            sp_wins = calc_sp_wins(un, all_preds, match_names)
+            up   = [p for p in all_preds if p["player"]==un and p.get("actual_score") is not None]
+            sp_wins = calc_sp_wins(un,all_preds,match_names)
             played  = len(up)
             score_pts = winner_pts = wicket_pts = 0
             for p in up:
-                match_preds = [x for x in all_preds if x["match_name"] == p["match_name"] and x.get("actual_score") is not None]
-                sp, wp, wkp = breakdown_sp_from_pred(p, match_preds)
-                score_pts += sp; winner_pts += wp; wicket_pts += wkp
-            corr_w  = sum(1 for p in up if caps(p.get("predicted_winner","")) == caps(p.get("actual_winner","")))
-            margin  = sum(abs(int(p.get("predicted_score") or 0) - int(p.get("actual_score") or 0)) for p in up)
-            exacts  = sum(1 for p in up if int(p.get("predicted_score") or 0) == int(p.get("actual_score") or 0))
+                mp = [x for x in all_preds if x["match_name"]==p["match_name"] and x.get("actual_score") is not None]
+                sp,wp,wkp = breakdown_sp_from_pred(p,mp)
+                score_pts+=sp; winner_pts+=wp; wicket_pts+=wkp
+            corr_w  = sum(1 for p in up if caps(p.get("predicted_winner",""))==caps(p.get("actual_winner","")))
+            margin  = sum(abs(int(p.get("predicted_score") or 0)-int(p.get("actual_score") or 0)) for p in up)
+            exacts  = sum(1 for p in up if int(p.get("predicted_score") or 0)==int(p.get("actual_score") or 0))
             sp_rows.append({
-                "Team": team, "Played": played, "SP Wins": sp_wins,
+                "Team": team,"Played": played,"SP Wins": sp_wins,
                 "Win %": f"{round(sp_wins/played*100)}%" if played else "0%",
-                "Score Pts": score_pts, "Winner Pts": winner_pts, "Wicket Pts": wicket_pts,
-                "Correct Winners": corr_w, "Exact Preds": exacts, "Margin of Error": margin,
+                "Score Pts": score_pts,"Winner Pts": winner_pts,"Wicket Pts": wicket_pts,
+                "Correct Winners": corr_w,"Exact Preds": exacts,"Margin of Error": margin,
             })
         sp_rows.sort(key=lambda x: x["SP Wins"], reverse=True)
         st.dataframe(pd.DataFrame(sp_rows), use_container_width=True, hide_index=True)
@@ -575,25 +538,25 @@ def page_overall_stats():
         for u in users:
             un   = u["username"]
             team = u.get("team_name") or un
-            ubps = [b for b in all_bps if b["player"] == un]
-            correct = sum(1 for b in ubps if b.get("result") == "correct")
-            wrong   = sum(1 for b in ubps if b.get("result") == "wrong")
-            total_b = correct + wrong
+            ubps = [b for b in all_bps if b["player"]==un]
+            correct = sum(1 for b in ubps if b.get("result")=="correct")
+            wrong   = sum(1 for b in ubps if b.get("result")=="wrong")
+            total_b = correct+wrong
             bp_rows.append({
-                "Team": team, "BP Correct": correct, "BP Wrong": wrong,
+                "Team": team,"BP Correct": correct,"BP Wrong": wrong,
                 "Success %": f"{round(correct/total_b*100)}%" if total_b else "0%",
-                "Custom BPs": sum(1 for b in ubps if b.get("bp_type") == "custom"),
+                "Custom BPs": sum(1 for b in ubps if b.get("bp_type")=="custom"),
                 "BP Points": int(sum(float(b.get("points_awarded") or 0) for b in ubps)),
             })
         bp_rows.sort(key=lambda x: x["BP Correct"], reverse=True)
         st.dataframe(pd.DataFrame(bp_rows), use_container_width=True, hide_index=True)
         st.markdown("---")
         st.subheader("📐 Margin of Error — lower is better")
-        m_df = pd.DataFrame([{"Team": r["Team"], "Margin": r["Margin of Error"]}
+        m_df = pd.DataFrame([{"Team": r["Team"],"Margin": r["Margin of Error"]}
                               for r in sorted(sp_rows, key=lambda x: x["Margin of Error"])])
         st.bar_chart(m_df.set_index("Team"), use_container_width=True, height=300)
 
-    with tab2:
+    with tab3:
         st.subheader("🏅 Podium Tracker")
         podium_rows = []
         for u in users:
@@ -601,141 +564,106 @@ def page_overall_stats():
             team = u.get("team_name") or un
             first = second = third = missed = 0
             for mn in match_names:
-                rank = calc_rank(un, mn, all_preds)
-                if rank is None: missed += 1
-                elif rank == 1: first  += 1
-                elif rank == 2: second += 1
-                elif rank == 3: third  += 1
-            attended = len(match_names) - missed
+                rank = calc_rank(un,mn,all_preds)
+                if rank is None: missed+=1
+                elif rank==1: first+=1
+                elif rank==2: second+=1
+                elif rank==3: third+=1
+            attended = len(match_names)-missed
             podium_rows.append({
-                "Team": team, "🥇 1st": first, "🥈 2nd": second, "🥉 3rd": third,
+                "Team": team,"🥇 1st": first,"🥈 2nd": second,"🥉 3rd": third,
                 "Missed": missed,
                 "Attendance %": f"{round(attended/len(match_names)*100)}%" if match_names else "0%",
             })
-        podium_rows.sort(key=lambda x: (x["🥇 1st"], x["🥈 2nd"], x["🥉 3rd"]), reverse=True)
+        podium_rows.sort(key=lambda x: (x["🥇 1st"],x["🥈 2nd"],x["🥉 3rd"]), reverse=True)
         st.dataframe(pd.DataFrame(podium_rows), use_container_width=True, hide_index=True)
 
-    with tab3:
+    with tab4:
         st.subheader("⚔️ Head to Head")
         names = [u.get("team_name") or u["username"] for u in users]
-        c1, c2 = st.columns(2)
+        c1,c2 = st.columns(2)
         with c1: p1_name = st.selectbox("Player 1", names, key="h2h1")
-        with c2: p2_name = st.selectbox("Player 2", [n for n in names if n != p1_name], key="h2h2")
-        p1 = next((u for u in users if (u.get("team_name") or u["username"]) == p1_name), None)
-        p2 = next((u for u in users if (u.get("team_name") or u["username"]) == p2_name), None)
+        with c2: p2_name = st.selectbox("Player 2",[n for n in names if n!=p1_name], key="h2h2")
+        p1 = next((u for u in users if (u.get("team_name") or u["username"])==p1_name), None)
+        p2 = next((u for u in users if (u.get("team_name") or u["username"])==p2_name), None)
         if p1 and p2:
             def get_h2h(u):
                 un  = u["username"]
-                up  = [p for p in all_preds if p["player"] == un and p.get("actual_score") is not None]
-                ubp = [b for b in all_bps if b["player"] == un]
-                f = s = t = 0
+                up  = [p for p in all_preds if p["player"]==un and p.get("actual_score") is not None]
+                ubp = [b for b in all_bps if b["player"]==un]
+                f=s=t=0
                 for mn in match_names:
-                    r = calc_rank(un, mn, all_preds)
-                    if r == 1: f += 1
-                    elif r == 2: s += 1
-                    elif r == 3: t += 1
-                score_pts = winner_pts = wicket_pts = 0
+                    r = calc_rank(un,mn,all_preds)
+                    if r==1: f+=1
+                    elif r==2: s+=1
+                    elif r==3: t+=1
+                score_pts=winner_pts=wicket_pts=0
                 for p in up:
-                    mp = [x for x in all_preds if x["match_name"] == p["match_name"] and x.get("actual_score") is not None]
-                    sp, wp, wkp = breakdown_sp_from_pred(p, mp)
-                    score_pts += sp; winner_pts += wp; wicket_pts += wkp
+                    mp = [x for x in all_preds if x["match_name"]==p["match_name"] and x.get("actual_score") is not None]
+                    sp,wp,wkp = breakdown_sp_from_pred(p,mp)
+                    score_pts+=sp; winner_pts+=wp; wicket_pts+=wkp
                 bp_total  = int(sum(float(b.get("points_awarded") or 0) for b in ubp))
-                str_total = int(sum(float(s2.get("bonus_points") or 0) for s2 in (db().table("streaks").select("bonus_points").eq("player", un).execute().data or [])))
+                str_total = int(sum(float(s2.get("bonus_points") or 0) for s2 in (db().table("streaks").select("bonus_points").eq("player",un).execute().data or [])))
                 return {
-                    "Total Points": score_pts + winner_pts + wicket_pts + bp_total + str_total,
-                    "Score Points": score_pts, "Winner Points": winner_pts, "Wicket Points": wicket_pts,
-                    "BP Points": bp_total, "Streak Points": str_total,
-                    "SP Wins": calc_sp_wins(un, all_preds, match_names),
-                    "BP Correct": sum(1 for b in ubp if b.get("result") == "correct"),
-                    "BP Wrong": sum(1 for b in ubp if b.get("result") == "wrong"),
-                    "Exact Predictions": sum(1 for p in up if int(p.get("predicted_score") or 0) == int(p.get("actual_score") or -1)),
-                    "Correct Winners": sum(1 for p in up if caps(p.get("predicted_winner","")) == caps(p.get("actual_winner",""))),
-                    "Margin of Error": sum(abs(int(p.get("predicted_score") or 0) - int(p.get("actual_score") or 0)) for p in up),
-                    "1st Place Finishes": f, "2nd Place Finishes": s, "3rd Place Finishes": t,
-                    "Current Streak": calc_streak_from_preds(un, all_preds),
+                    "Total Points": score_pts+winner_pts+wicket_pts+bp_total+str_total,
+                    "Score Points": score_pts,"Winner Points": winner_pts,"Wicket Points": wicket_pts,
+                    "BP Points": bp_total,"Streak Points": str_total,
+                    "SP Wins": calc_sp_wins(un,all_preds,match_names),
+                    "BP Correct": sum(1 for b in ubp if b.get("result")=="correct"),
+                    "BP Wrong": sum(1 for b in ubp if b.get("result")=="wrong"),
+                    "Exact Predictions": sum(1 for p in up if int(p.get("predicted_score") or 0)==int(p.get("actual_score") or -1)),
+                    "Correct Winners": sum(1 for p in up if caps(p.get("predicted_winner",""))==caps(p.get("actual_winner",""))),
+                    "Margin of Error": sum(abs(int(p.get("predicted_score") or 0)-int(p.get("actual_score") or 0)) for p in up),
+                    "1st Place": f,"2nd Place": s,"3rd Place": t,
+                    "Current Streak": calc_streak_from_preds(un,all_preds),
                 }
-            s1, s2 = get_h2h(p1), get_h2h(p2)
-            lower_better = {"Margin of Error", "BP Wrong"}
+            s1,s2 = get_h2h(p1),get_h2h(p2)
+            lower_better = {"Margin of Error","BP Wrong"}
             h2h_rows = []
             for stat in s1:
-                v1, v2 = s1[stat], s2[stat]
-                w1 = (v1 < v2) if stat in lower_better else (v1 > v2)
-                w2 = (v2 < v1) if stat in lower_better else (v2 > v1)
+                v1,v2 = s1[stat],s2[stat]
+                w1 = (v1<v2) if stat in lower_better else (v1>v2)
+                w2 = (v2<v1) if stat in lower_better else (v2>v1)
                 h2h_rows.append({"Stat": stat,
                     p1_name: f"✅ {v1}" if w1 else str(v1),
                     p2_name: f"✅ {v2}" if w2 else str(v2)})
             st.markdown(f"### {p1_name}  ⚔️  {p2_name}")
             st.dataframe(pd.DataFrame(h2h_rows), use_container_width=True, hide_index=True)
 
-    with tab4:
-        st.subheader("📋 Full Stats Table")
-        full = []
-        for u in users:
-            un   = u["username"]
-            team = u.get("team_name") or un
-            up   = [p for p in all_preds if p["player"] == un and p.get("actual_score") is not None]
-            ubps = [b for b in all_bps if b["player"] == un]
-            score_pts = winner_pts = wicket_pts = 0
-            for p in up:
-                mp = [x for x in all_preds if x["match_name"] == p["match_name"] and x.get("actual_score") is not None]
-                sp, wp, wkp = breakdown_sp_from_pred(p, mp)
-                score_pts += sp; winner_pts += wp; wicket_pts += wkp
-            bp_total  = int(sum(float(b.get("points_awarded") or 0) for b in ubps))
-            str_total = int(sum(float(s.get("bonus_points") or 0) for s in (db().table("streaks").select("bonus_points").eq("player", un).execute().data or [])))
-            full.append({
-                "Team": team,
-                "Total": score_pts + winner_pts + wicket_pts + bp_total + str_total,
-                "Score Pts": score_pts, "Winner Pts": winner_pts, "Wicket Pts": wicket_pts,
-                "BP Pts": bp_total, "Streak Pts": str_total,
-                "SP Wins": calc_sp_wins(un, all_preds, match_names),
-                "BP Correct": sum(1 for b in ubps if b.get("result") == "correct"),
-                "BP Wrong": sum(1 for b in ubps if b.get("result") == "wrong"),
-                "Exacts": sum(1 for p in up if int(p.get("predicted_score") or 0) == int(p.get("actual_score") or -1)),
-                "Margin of Error": sum(abs(int(p.get("predicted_score") or 0) - int(p.get("actual_score") or 0)) for p in up),
-                "Attended": len(set(p["match_name"] for p in all_preds if p["player"] == un)),
-                "Streak": calc_streak_from_preds(un, all_preds),
-            })
-        full.sort(key=lambda x: x["Total"], reverse=True)
-        st.dataframe(pd.DataFrame(full), use_container_width=True, hide_index=True)
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PLAYER STATS
 # ══════════════════════════════════════════════════════════════════════════════
 def page_player_stats():
-    st.title("👤 Player Stats")
+    st.markdown("<h1 style='text-align:center'>👤 Player Stats</h1>", unsafe_allow_html=True)
     st.markdown("---")
     users = get_playing_users()
     if not users: st.info("No players."); return
     names    = [u.get("team_name") or u["username"] for u in users]
     selected = st.selectbox("Select Player", names)
-    u = next((u for u in users if (u.get("team_name") or u["username"]) == selected), None)
+    u = next((u for u in users if (u.get("team_name") or u["username"])==selected), None)
     if not u: return
     un      = u["username"]
     matches = get_matches()
-    mm      = {m["match_name"]: m.get("match_number", i+1) for i, m in enumerate(matches)}
+    mm      = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(matches)}
     all_preds_full = db().table("predictions").select("*").execute().data or []
-    my_preds = db().table("predictions").select("*").eq("player", un).execute().data or []
-    my_bps   = db().table("pool_bps").select("*").eq("player", un).execute().data or []
-    my_str   = db().table("streaks").select("bonus_points").eq("player", un).execute().data or []
-
-    score_pts = winner_pts = wicket_pts = 0
+    my_preds = db().table("predictions").select("*").eq("player",un).execute().data or []
+    my_bps   = db().table("pool_bps").select("*").eq("player",un).execute().data or []
+    my_str   = db().table("streaks").select("bonus_points").eq("player",un).execute().data or []
+    score_pts=winner_pts=wicket_pts=0
     for p in my_preds:
         if p.get("actual_score") is not None:
-            mp = [x for x in all_preds_full if x["match_name"] == p["match_name"] and x.get("actual_score") is not None]
-            sp, wp, wkp = breakdown_sp_from_pred(p, mp)
-            score_pts += sp; winner_pts += wp; wicket_pts += wkp
-
+            mp = [x for x in all_preds_full if x["match_name"]==p["match_name"] and x.get("actual_score") is not None]
+            sp,wp,wkp = breakdown_sp_from_pred(p,mp)
+            score_pts+=sp; winner_pts+=wp; wicket_pts+=wkp
     b_pts  = int(sum(float(b.get("points_awarded") or 0) for b in my_bps))
     st_pts = int(sum(float(s.get("bonus_points")   or 0) for s in my_str))
-    tot    = score_pts + winner_pts + wicket_pts + b_pts + st_pts
+    tot    = score_pts+winner_pts+wicket_pts+b_pts+st_pts
     streak = calc_streak_from_preds(un, all_preds_full)
     exacts = sum(1 for p in my_preds if p.get("actual_score") is not None
-                 and int(p.get("predicted_score") or 0) == int(p.get("actual_score") or -1))
-
-    st.markdown(f'<div style="display:flex;align-items:center;gap:12px">{player_logo_html(un, 52)}<h2 style="margin:0">{selected}</h2></div>', unsafe_allow_html=True)
+                 and int(p.get("predicted_score") or 0)==int(p.get("actual_score") or -1))
+    st.markdown(f'<div style="display:flex;align-items:center;gap:12px">{player_logo_html(un,52)}<h2 style="margin:0">{selected}</h2></div>', unsafe_allow_html=True)
     st.markdown("")
-
     c1,c2,c3,c4,c5,c6 = st.columns(6)
     c1.metric("🏆 Total", tot)
     c2.metric("🎯 Score Pts", score_pts)
@@ -743,43 +671,37 @@ def page_player_stats():
     c4.metric("🎳 Wicket Pts", wicket_pts)
     c5.metric("🎱 BP Pts", b_pts)
     c6.metric("🔥 Streak Pts", st_pts)
-
-    if streak > 1:
+    if streak>1:
         st.success(f"🔥 Active streak: **{streak} wins in a row!** (+{streak_bonus(streak+1)} next win)")
-    elif streak == 1:
+    elif streak==1:
         st.info("✅ Won last match! Win again to start earning streak bonus.")
-
     st.markdown("---")
-    if tot > 0:
+    if tot>0:
         st.subheader("📊 Points Breakdown")
         st.bar_chart(pd.DataFrame({
             "Category": ["Score","Winner","Wicket","BP","Streak"],
-            "Points":   [score_pts, winner_pts, wicket_pts, b_pts, st_pts]
+            "Points":   [score_pts,winner_pts,wicket_pts,b_pts,st_pts]
         }).set_index("Category"), use_container_width=True, height=250)
-
     st.markdown("---")
     st.subheader("🔮 Score Predictions")
     if my_preds:
         rows = []
         for p in my_preds:
-            sp = wp = wkp = 0
+            sp=wp=wkp=0
             if p.get("actual_score") is not None:
-                mp = [x for x in all_preds_full if x["match_name"] == p["match_name"] and x.get("actual_score") is not None]
-                sp, wp, wkp = breakdown_sp_from_pred(p, mp)
-            ex  = "⚡" if p.get("actual_score") and int(p.get("predicted_score") or 0) == int(p.get("actual_score") or -1) else ""
+                mp = [x for x in all_preds_full if x["match_name"]==p["match_name"] and x.get("actual_score") is not None]
+                sp,wp,wkp = breakdown_sp_from_pred(p,mp)
+            ex  = "⚡" if p.get("actual_score") and int(p.get("predicted_score") or 0)==int(p.get("actual_score") or -1) else ""
             act = f"{p.get('actual_score')} - {str(p.get('actual_wickets',0)).zfill(2)} | {p.get('actual_winner','')}" if p.get("actual_score") else "Pending"
             rows.append({
-                "Match #":    f"#{mm.get(p['match_name'],'?')}",
-                "Match":      p["match_name"],
-                "Predicted":  f"{p.get('predicted_score')} - {str(p.get('predicted_wickets',0)).zfill(2)} | {p.get('predicted_winner','')}",
-                "Actual":     act, "⚡": ex,
-                "Score Pts":  sp, "Winner Pts": wp, "Wicket Pts": wkp,
-                "Total Pts":  sp + wp + wkp,
+                "Match #": f"#{mm.get(p['match_name'],'?')}","Match": p["match_name"],
+                "Predicted": f"{p.get('predicted_score')} - {str(p.get('predicted_wickets',0)).zfill(2)} | {p.get('predicted_winner','')}",
+                "Actual": act,"⚡": ex,
+                "Score Pts": sp,"Winner Pts": wp,"Wicket Pts": wkp,"Total Pts": sp+wp+wkp,
             })
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
     else:
         st.info("No predictions yet.")
-
     st.markdown("---")
     st.subheader("🎱 Bold Predictions")
     if my_bps:
@@ -787,12 +709,10 @@ def page_player_stats():
         for b in my_bps:
             icon = "✅" if b.get("result")=="correct" else "❌" if b.get("result")=="wrong" else "🚫" if b.get("result")=="dismissed" else "⏳"
             rows.append({
-                "Match #":    f"#{mm.get(b['match_name'],'?')}",
-                "Match":      b["match_name"],
+                "Match #": f"#{mm.get(b['match_name'],'?')}","Match": b["match_name"],
                 "Prediction": b["prediction_text"],
-                "Type":       "💡" if b.get("bp_type")=="custom" else "🎱",
-                "Result":     icon,
-                "Pts":        int(float(b.get("points_awarded") or 0)),
+                "Type": "💡" if b.get("bp_type")=="custom" else "🎱",
+                "Result": icon,"Pts": int(float(b.get("points_awarded") or 0)),
             })
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
     else:
@@ -802,7 +722,9 @@ def page_player_stats():
 # ══════════════════════════════════════════════════════════════════════════════
 # HALL OF FAME
 # ══════════════════════════════════════════════════════════════════════════════
-def render_podium(title, description, data, stat_label):
+def render_podium(title, description, data, stat_label, full_data=None):
+    """data = list of (team_name, value, username) sorted best first
+       full_data = list of all (team_name, value, username) for full table"""
     st.markdown(f"### {title}")
     st.caption(description)
     if not data:
@@ -821,14 +743,21 @@ color:#000;margin:4px 0;display:flex;justify-content:space-between;align-items:c
 <span style='display:flex;align-items:center;gap:8px;font-size:{size};font-weight:bold'>{logo}{medal} {name}</span>
 <span style='font-size:0.9em'>{stat_label}: <b>{val}</b></span>
 </div>""", unsafe_allow_html=True)
+
+    # Expandable full rankings
+    if full_data and len(full_data) > 3:
+        with st.expander("📋 See full rankings"):
+            for i, (name, val, _) in enumerate(full_data):
+                rank_str = ["🥇","🥈","🥉"][i] if i < 3 else str(i+1)
+                st.write(f"{rank_str} **{name}** — {stat_label}: {val}")
     st.markdown("---")
 
 def page_hall_of_fame():
-    st.title("🏅 Hall of Fame")
+    st.markdown("<h1 style='text-align:center'>🏅 Hall of Fame</h1>", unsafe_allow_html=True)
     st.markdown("---")
     users   = get_playing_users()
     matches = get_matches()
-    done    = [m for m in matches if m.get("status") == "done"]
+    done    = [m for m in matches if m.get("status")=="done"]
     mnames  = [m["match_name"] for m in done]
     if not users or not done:
         st.info("Not enough data yet.")
@@ -839,31 +768,32 @@ def page_hall_of_fame():
     for u in users:
         un   = u["username"]
         team = u.get("team_name") or un
-        up   = [p for p in all_preds if p["player"] == un and p.get("actual_score") is not None]
-        ubps = [b for b in all_bps if b["player"] == un]
-        first = second = 0
+        up   = [p for p in all_preds if p["player"]==un and p.get("actual_score") is not None]
+        ubps = [b for b in all_bps if b["player"]==un]
+        first=second=0
         for mn in mnames:
-            r = calc_rank(un, mn, all_preds)
-            if r == 1: first  += 1
-            elif r == 2: second += 1
+            r = calc_rank(un,mn,all_preds)
+            if r==1: first+=1
+            elif r==2: second+=1
         tmpl_counts = {}
         for b in ubps:
             k = b.get("template_key","")
-            if k and k not in ["custom","admin_behalf"]:
+            if k and k not in ["","custom","admin_behalf"]:
                 tmpl_counts[k] = tmpl_counts.get(k,0)+1
-        score_pts = winner_pts = wicket_pts = 0
+        bp_variety = len(set(b.get("template_key","") for b in ubps
+                            if b.get("template_key","") not in ["","custom","admin_behalf"]))
+        score_pts=winner_pts=wicket_pts=0
         for p in up:
-            mp = [x for x in all_preds if x["match_name"] == p["match_name"] and x.get("actual_score") is not None]
-            sp, wp, wkp = breakdown_sp_from_pred(p, mp)
-            score_pts += sp; winner_pts += wp; wicket_pts += wkp
+            mp = [x for x in all_preds if x["match_name"]==p["match_name"] and x.get("actual_score") is not None]
+            sp,wp,wkp = breakdown_sp_from_pred(p,mp)
+            score_pts+=sp; winner_pts+=wp; wicket_pts+=wkp
         bp_total  = int(sum(float(b.get("points_awarded") or 0) for b in ubps))
         str_total = int(sum(float(s.get("bonus_points") or 0) for s in (db().table("streaks").select("bonus_points").eq("player",un).execute().data or [])))
-        bp_variety = len(set(b.get("template_key","") for b in ubps if b.get("template_key","") not in ["","custom","admin_behalf"]))
         stats[un] = {
-            "team": team, "username": un,
+            "team": team,"username": un,
             "total": score_pts+winner_pts+wicket_pts+bp_total+str_total,
             "sp_wins": calc_sp_wins(un,all_preds,mnames),
-            "first": first, "second": second,
+            "first": first,"second": second,
             "bp_correct": sum(1 for b in ubps if b.get("result")=="correct"),
             "bp_wrong":   sum(1 for b in ubps if b.get("result")=="wrong"),
             "exact": sum(1 for p in up if int(p.get("predicted_score") or 0)==int(p.get("actual_score") or -1)),
@@ -876,44 +806,48 @@ def page_hall_of_fame():
             "bp_variety": bp_variety,
             "cur_streak": calc_streak_from_preds(un, all_preds),
         }
-    def top3(key, rev=True):
+
+    def top_all(key, rev=True):
         s = sorted(stats.items(), key=lambda x: x[1][key], reverse=rev)
-        return [(stats[u]["team"], stats[u][key], stats[u]["username"]) for u,_ in s[:3]]
+        return [(stats[u]["team"], stats[u][key], stats[u]["username"]) for u,_ in s]
+
+    def top3(key, rev=True):
+        return top_all(key, rev)[:3]
+
     col1, col2 = st.columns(2)
     with col1:
-        render_podium('👑 "Too Good"',              "Most SP wins. Consistent. Clinical. Probably cheating.",                top3("sp_wins"),           "SP Wins")
-        render_podium('⚡ "The Psychic"',           "Most exact predictions. Basically has a crystal ball.",                 top3("exact"),             "Exact Preds")
-        render_podium('🧠 "Big Brain"',             "Most BPs correct. Actually knows cricket. Shocking.",                   top3("bp_correct"),        "BPs Correct")
-        render_podium('🎯 "The Uncrowned King"',    "Lowest margin of error. Always closest, never wins.",                   top3("margin",rev=False),  "Margin of Error")
-        render_podium('🏏 "Team Whisperer"',        "Most correct match winner predictions.",                                top3("corr_w"),            "Correct Winners")
-        render_podium('🎳 "Wicket Whisperer"',      "Most correct wicket predictions.",                                      top3("corr_wk"),           "Correct Wickets")
-        render_podium('🏃 "Never Misses"',          "Best attendance. Always there, no excuses.",                            top3("attended"),          "Matches Attended")
-        render_podium('🎨 "Most Variety"',           "Most unique BP templates used. Actually explores the pool.",            top3("bp_variety"),        "Unique BPs Used")
-        render_podium('🔥 "On Demon Time"',         "Longest active winning streak.",                                        top3("cur_streak"),        "Current Streak")
+        render_podium('👑 "Too Good"',              "Most SP wins. Consistent. Clinical. Probably cheating.",             top3("sp_wins"),           "SP Wins",     top_all("sp_wins"))
+        render_podium('⚡ "The Psychic"',           "Most exact predictions. Basically has a crystal ball.",              top3("exact"),             "Exact Preds", top_all("exact"))
+        render_podium('🧠 "Big Brain"',             "Most BPs correct. Actually knows cricket. Shocking.",                top3("bp_correct"),        "BPs Correct", top_all("bp_correct"))
+        render_podium('🎯 "The Uncrowned King"',    "Lowest margin of error. Always closest, never wins.",                top3("margin",rev=False),  "Margin",      top_all("margin",rev=False))
+        render_podium('🏏 "Team Whisperer"',        "Most correct match winner predictions.",                             top3("corr_w"),            "Correct Winners", top_all("corr_w"))
+        render_podium('🎳 "Wicket Whisperer"',      "Most correct wicket predictions.",                                   top3("corr_wk"),           "Correct Wickets", top_all("corr_wk"))
+        render_podium('🏃 "Never Misses"',          "Best attendance. Always there, no excuses.",                         top3("attended"),          "Matches Attended", top_all("attended"))
+        render_podium('🎨 "Most Variety"',          "Most unique BP templates used.",                                     top3("bp_variety"),        "Unique BPs",  top_all("bp_variety"))
+        render_podium('🔥 "On Demon Time"',         "Longest active winning streak.",                                     top3("cur_streak"),        "Streak",      top_all("cur_streak"))
     with col2:
-        render_podium('💀 "Absolute Clown"',        "Most BPs wrong. Boldly wrong every single time.",                       top3("bp_wrong"),          "BPs Wrong")
-        render_podium('🎲 "Asks Nobody"',           "Most custom BPs. Didn't ask admin. Just vibes.",                        top3("custom_bps"),        "Custom BPs")
-        render_podium('😤 "Uncrowned Prince"',      "Most 2nd places. So close, so often, so painful.",                      top3("second"),            "2nd Places")
-        render_podium('💨 "What Are You Watching"', "Highest margin of error. Predicted 200, score was 156. Every time.",    top3("margin"),            "Margin of Error")
-        render_podium('🪣 "Touch Grass"',           "Least total points. Might need a different hobby.",                     top3("total",rev=False),   "Total Points")
-        render_podium('🛋️ "Checked Out"',           "Most matches missed. Drought so long it has its own Wikipedia page.",   top3("attended",rev=False),"Matches Attended")
-        render_podium('🔒 "The Elite"',      "Most 1st place finishes. Consistent. Boring. Winning.",                 top3("first"),             "1st Places")
-        render_podium('🃏 "One Trick Pony"',        "Same BP every match. Found one move and never looked back.",            top3("top_tmpl_cnt"),      "Same BP Used")
+        render_podium('💀 "Absolute Clown"',        "Most BPs wrong. Boldly wrong every single time.",                   top3("bp_wrong"),          "BPs Wrong",   top_all("bp_wrong"))
+        render_podium('🎲 "Asks Nobody"',           "Most custom BPs. Didn't ask admin. Just vibes.",                    top3("custom_bps"),        "Custom BPs",  top_all("custom_bps"))
+        render_podium('😤 "Uncrowned Prince"',      "Most 2nd places. So close, so often, so painful.",                  top3("second"),            "2nd Places",  top_all("second"))
+        render_podium('💨 "What Are You Watching"', "Highest margin of error. Predicted 200, score was 156. Every time.",top3("margin"),            "Margin",      top_all("margin"))
+        render_podium('🪣 "Touch Grass"',           "Least total points. Might need a different hobby.",                  top3("total",rev=False),   "Total Points",top_all("total",rev=False))
+        render_podium('🛋️ "Checked Out"',           "Most matches missed. Drought so long it has its own Wikipedia page.",top3("attended",rev=False),"Matches Attended",top_all("attended",rev=False))
+        render_podium('🃏 "One Trick Pony"',        "Same BP every match. Found one move and never looked back.",         top3("top_tmpl_cnt"),      "Same BP Used",top_all("top_tmpl_cnt"))
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # BP POOL
 # ══════════════════════════════════════════════════════════════════════════════
 def page_bp_pool():
-    st.title("🎱 BP Pool")
-    st.markdown("✅ Correct → **+3 pts** | ❌ Wrong → **-1 pt** | 🚫 Dismissed → **0 pts**")
+    st.markdown("<h1 style='text-align:center'>🎱 BP Pool</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center'>✅ Correct → <b>+3 pts</b> | ❌ Wrong → <b>-1 pt</b> | 🚫 Dismissed → <b>0 pts</b></p>", unsafe_allow_html=True)
     st.markdown("---")
     matches = [m for m in get_open_matches() if not m.get("bp_locked")]
     if not matches:
         st.warning("⏳ No open matches for BP submission.")
         return
-    mm    = {m["match_name"]: m.get("match_number", i+1) for i, m in enumerate(get_matches())}
-    match = st.selectbox("Select Match", [f"#{mm.get(m['match_name'],'?')} — {m['match_name']}" for m in matches])
+    mm    = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(get_matches())}
+    match = st.selectbox("Select Match",[f"#{mm.get(m['match_name'],'?')} — {m['match_name']}" for m in matches])
     match_name = match.split(" — ",1)[1]
     existing = db().table("pool_bps").select("*").eq("player",st.session_state.user["username"]).eq("match_name",match_name).execute().data or []
     if existing:
@@ -947,10 +881,10 @@ def page_bp_pool():
             else:
                 final = tmpl.replace("{name}", fill_in.strip()) if "{name}" in tmpl else tmpl
                 db().table("pool_bps").insert({
-                    "match_name": match_name, "player": st.session_state.user["username"],
-                    "bp_type": "pool", "template_key": st.session_state.sel_key,
-                    "fill_in": fill_in.strip(), "prediction_text": final,
-                    "status": "pending", "points_awarded": 0,
+                    "match_name": match_name,"player": st.session_state.user["username"],
+                    "bp_type": "pool","template_key": st.session_state.sel_key,
+                    "fill_in": fill_in.strip(),"prediction_text": final,
+                    "status": "pending","points_awarded": 0,
                     "submitted_at": datetime.now().strftime("%Y-%m-%d %H:%M")
                 }).execute()
                 for k in ["sel_key","sel_tmpl","sel_note"]:
@@ -970,10 +904,10 @@ def page_bp_pool():
                 st.error("Already submitted a BP for this match!")
             else:
                 db().table("pool_bps").insert({
-                    "match_name": match_name, "player": st.session_state.user["username"],
-                    "bp_type": "custom", "template_key": "custom", "fill_in": "",
-                    "prediction_text": custom.strip(), "status": "pending",
-                    "points_awarded": 0, "submitted_at": datetime.now().strftime("%Y-%m-%d %H:%M")
+                    "match_name": match_name,"player": st.session_state.user["username"],
+                    "bp_type": "custom","template_key": "custom","fill_in": "",
+                    "prediction_text": custom.strip(),"status": "pending",
+                    "points_awarded": 0,"submitted_at": datetime.now().strftime("%Y-%m-%d %H:%M")
                 }).execute()
                 st.success("✅ Custom BP submitted!")
                 st.balloons()
@@ -983,14 +917,14 @@ def page_bp_pool():
 # SCORE PREDICTION
 # ══════════════════════════════════════════════════════════════════════════════
 def page_submit_sp():
-    st.title("🔮 Score Prediction")
+    st.markdown("<h1 style='text-align:center'>🔮 Score Prediction</h1>", unsafe_allow_html=True)
     st.markdown("---")
     matches = [m for m in get_open_matches() if not m.get("sp_locked")]
     if not matches:
         st.warning("⏳ No open matches.")
         return
-    mm    = {m["match_name"]: m.get("match_number", i+1) for i, m in enumerate(get_matches())}
-    match = st.selectbox("Select Match", [f"#{mm.get(m['match_name'],'?')} — {m['match_name']}" for m in matches])
+    mm    = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(get_matches())}
+    match = st.selectbox("Select Match",[f"#{mm.get(m['match_name'],'?')} — {m['match_name']}" for m in matches])
     match_name = match.split(" — ",1)[1]
     existing = db().table("predictions").select("*").eq("player",st.session_state.user["username"]).eq("match_name",match_name).execute().data or []
     if existing:
@@ -998,12 +932,12 @@ def page_submit_sp():
         st.warning("✅ Already submitted!")
         st.info(f"**{p['predicted_score']} - {str(p.get('predicted_wickets',0)).zfill(2)} | {p['predicted_winner']}** | Pts: {int(float(p.get('points_awarded',0)))}")
         return
-    c1, c2 = st.columns(2)
+    c1,c2 = st.columns(2)
     with c1:
         ps = st.number_input("Predicted Score (runs)", min_value=0, max_value=400, step=1)
         pw = st.number_input("Predicted Wickets (0-10)", min_value=0, max_value=10, step=1)
     with c2:
-        teams = get_match_teams(match_name)
+        teams  = get_match_teams(match_name)
         winner = st.selectbox("Predicted Winner", teams) if teams else caps(st.text_input("Predicted Winner"))
         if winner: st.caption(f"Team: **{winner}**")
     st.caption(f"Your prediction: **{ps} - {str(pw).zfill(2)} | {winner}**")
@@ -1012,9 +946,9 @@ def page_submit_sp():
             st.error("Select the winner!")
         else:
             db().table("predictions").insert({
-                "match_name": match_name, "player": st.session_state.user["username"],
-                "predicted_score": ps, "predicted_wickets": pw,
-                "predicted_winner": caps(winner), "points_awarded": 0,
+                "match_name": match_name,"player": st.session_state.user["username"],
+                "predicted_score": ps,"predicted_wickets": pw,
+                "predicted_winner": caps(winner),"points_awarded": 0,
                 "submitted_at": datetime.now().strftime("%Y-%m-%d %H:%M")
             }).execute()
             st.success("✅ Prediction submitted!")
@@ -1025,14 +959,14 @@ def page_submit_sp():
 # BP RESULTS
 # ══════════════════════════════════════════════════════════════════════════════
 def page_bp_results():
-    st.title("📝 BP Results")
+    st.markdown("<h1 style='text-align:center'>📝 BP Results</h1>", unsafe_allow_html=True)
     st.markdown("---")
     pending = db().table("pool_bps").select("*").eq("status","pending").execute().data or []
     if not pending:
         st.info("No BPs waiting.")
         return
     match_list = list(set(b["match_name"] for b in pending))
-    sel = st.selectbox("Filter by Match", ["All"] + match_list)
+    sel = st.selectbox("Filter by Match",["All"]+match_list)
     filtered = pending if sel=="All" else [b for b in pending if b["match_name"]==sel]
     for b in filtered:
         bp_type = "💡 Custom" if b.get("bp_type")=="custom" else "🎱 Pool"
@@ -1058,16 +992,16 @@ def page_bp_results():
 # ENTER RESULTS
 # ══════════════════════════════════════════════════════════════════════════════
 def page_enter_results():
-    st.title("🏆 Enter Match Results")
+    st.markdown("<h1 style='text-align:center'>🏆 Enter Match Results</h1>", unsafe_allow_html=True)
     st.markdown("---")
     matches = get_matches()
-    mm = {m["match_name"]: m.get("match_number", i+1) for i, m in enumerate(matches)}
+    mm = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(matches)}
     pending = [m for m in matches if m.get("sp_locked") and m.get("status") not in ["done","cancelled"]]
     if not pending:
         st.info("No matches waiting for results.")
         return
-    sel = st.selectbox("Select Match", [f"#{mm[m['match_name']]} — {m['match_name']}" for m in pending])
-    match_name     = sel.split(" — ",1)[1]
+    sel = st.selectbox("Select Match",[f"#{mm[m['match_name']]} — {m['match_name']}" for m in pending])
+    match_name = sel.split(" — ",1)[1]
     actual_score   = st.number_input("Actual Score (runs)", min_value=0, max_value=500, step=1)
     actual_wickets = st.number_input("Actual Wickets", min_value=0, max_value=10, step=1)
     teams = get_match_teams(match_name)
@@ -1086,13 +1020,13 @@ def page_enter_results():
 # LOCK / CANCEL
 # ══════════════════════════════════════════════════════════════════════════════
 def page_lock_cancel():
-    st.title("🔒 Lock / Cancel")
+    st.markdown("<h1 style='text-align:center'>🔒 Lock / Cancel</h1>", unsafe_allow_html=True)
     st.markdown("---")
     matches = get_matches()
     if not matches: st.info("No matches."); return
     user = st.session_state.user
     now  = datetime.now().strftime("%Y-%m-%d %H:%M")
-    mm   = {m["match_name"]: m.get("match_number", i+1) for i, m in enumerate(matches)}
+    mm   = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(matches)}
     for m in matches:
         with st.expander(f"Match #{mm[m['match_name']]} — {m['match_name']} | {m.get('status','open').upper()}"):
             c1,c2 = st.columns(2)
@@ -1116,18 +1050,18 @@ def page_lock_cancel():
                     if st.button("🔒 Lock SP", key=f"lsp_{m['id']}"):
                         db().table("matches").update({"sp_locked":True,"sp_locked_by":user["username"],"sp_locked_at":now}).eq("id",m["id"]).execute()
                         st.rerun()
-            if m.get("status") != "cancelled":
+            if m.get("status")!="cancelled":
                 st.markdown("**🌧️ Cancel due to rain:**")
                 cancel_type = st.selectbox("What to cancel?",
                     ["Select...","Cancel BP only","Cancel SP only","Cancel both BP and SP"],
                     key=f"csel_{m['id']}")
-                if cancel_type != "Select...":
+                if cancel_type!="Select...":
                     if st.button(f"🌧️ Confirm — {cancel_type}", key=f"cancel_{m['id']}"):
                         if "BP" in cancel_type:
                             db().table("pool_bps").update({"points_awarded":0,"status":"cancelled"}).eq("match_name",m["match_name"]).execute()
                         if "SP" in cancel_type:
                             db().table("predictions").update({"points_awarded":0,"status":"cancelled"}).eq("match_name",m["match_name"]).execute()
-                        if cancel_type == "Cancel both BP and SP":
+                        if cancel_type=="Cancel both BP and SP":
                             db().table("matches").update({"status":"cancelled"}).eq("id",m["id"]).execute()
                         st.success(f"✅ {cancel_type} done!")
                         st.rerun()
@@ -1137,23 +1071,22 @@ def page_lock_cancel():
 # MATCH DETAILS
 # ══════════════════════════════════════════════════════════════════════════════
 def page_match_details():
-    st.title("📋 Match Details")
+    st.markdown("<h1 style='text-align:center'>📋 Match Details</h1>", unsafe_allow_html=True)
     st.markdown("---")
     matches = get_matches()
     if not matches: st.info("No matches yet."); return
-    mm      = {m["match_name"]: m.get("match_number", i+1) for i, m in enumerate(matches)}
+    mm      = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(matches)}
     options = [f"Match #{mm[m['match_name']]} — {m['match_name']}" for m in matches]
     idx     = st.selectbox("Select Match", range(len(matches)), format_func=lambda i: options[i])
     m       = matches[idx]
     st.markdown(f"### 🏏 Match #{mm[m['match_name']]} — {m['match_name']} | {m.get('match_date','')}")
     c1,c2,c3 = st.columns(3)
-    c1.metric("BP", "🔒 Locked" if m.get("bp_locked") else "🟢 Open")
-    c2.metric("SP", "🔒 Locked" if m.get("sp_locked") else "🟢 Open")
+    c1.metric("BP","🔒 Locked" if m.get("bp_locked") else "🟢 Open")
+    c2.metric("SP","🔒 Locked" if m.get("sp_locked") else "🟢 Open")
     c3.metric("Status", m.get("status","open").upper())
     if m.get("actual_score"):
         st.success(f"**Result:** {m.get('actual_winner')} won | {m.get('actual_score')} - {str(m.get('actual_wickets',0)).zfill(2)}")
-
-    if m.get("status") == "done":
+    if m.get("status")=="done":
         st.markdown("---")
         st.subheader("🏆 Points of the Day")
         users = get_playing_users()
@@ -1162,56 +1095,53 @@ def page_match_details():
         for u in users:
             p = next((x for x in all_preds_match if x["player"]==u["username"]), None)
             b = db().table("pool_bps").select("points_awarded").eq("player",u["username"]).eq("match_name",m["match_name"]).execute().data or []
-            sp_today = wn_today = wk_today = bp_today = 0
+            sp_today=wn_today=wk_today=bp_today=0
             if p and p.get("actual_score") is not None:
-                sp_today, wn_today, wk_today = breakdown_sp_from_pred(p, all_preds_match)
+                sp_today,wn_today,wk_today = breakdown_sp_from_pred(p, all_preds_match)
             if b: bp_today = int(float(b[0].get("points_awarded") or 0))
             day_rows.append({
-                "Team": u["username"],
-                "Score Pts": sp_today, "Winner Pts": wn_today,
-                "Wicket Pts": wk_today, "BP Pts": bp_today,
+                "Team": u.get("team_name") or u["username"],
+                "Score Pts": sp_today,"Winner Pts": wn_today,
+                "Wicket Pts": wk_today,"BP Pts": bp_today,
                 "Total Today": sp_today+wn_today+wk_today+bp_today
             })
         day_rows.sort(key=lambda x: x["Total Today"], reverse=True)
         st.dataframe(pd.DataFrame(day_rows), use_container_width=True, hide_index=True)
-
     st.markdown("---")
     st.subheader("🎱 Bold Predictions")
     bps = db().table("pool_bps").select("*").eq("match_name",m["match_name"]).execute().data or []
     if bps:
-        if not m.get("bp_locked") and m.get("status") != "done":
+        if not m.get("bp_locked") and m.get("status")!="done":
             st.info("🔒 Hidden until BP is locked.")
         else:
             st.dataframe(pd.DataFrame([{
                 "": "✅" if b.get("result")=="correct" else "❌" if b.get("result")=="wrong" else "🚫" if b.get("result")=="dismissed" else "⏳",
-                "Team": b["player"],
-                "Prediction": b["prediction_text"],
+                "Team": b["player"],"Prediction": b["prediction_text"],
                 "Type": "💡" if b.get("bp_type")=="custom" else "🎱",
                 "Pts": int(float(b.get("points_awarded",0))),
             } for b in bps]), use_container_width=True, hide_index=True)
     else:
         st.info("No BPs yet.")
-
     st.markdown("---")
     st.subheader("🔮 Score Predictions")
     preds = db().table("predictions").select("*").eq("match_name",m["match_name"]).execute().data or []
     if preds:
-        if not m.get("sp_locked") and m.get("status") != "done":
+        if not m.get("sp_locked") and m.get("status")!="done":
             st.info("🔒 Hidden until SP is locked.")
         else:
             preds_s = sorted(preds, key=lambda x: x.get("points_awarded",0), reverse=True)
             rows = []
-            for i, p in enumerate(preds_s):
-                sp = wp = wkp = 0
+            for i,p in enumerate(preds_s):
+                sp=wp=wkp=0
                 if p.get("actual_score") is not None:
-                    sp, wp, wkp = breakdown_sp_from_pred(p, preds)
+                    sp,wp,wkp = breakdown_sp_from_pred(p, preds)
                 rows.append({
                     "": "🥇" if i==0 and (p.get("points_awarded") or 0)>=4 else "",
                     "Team": p["player"],
                     "Predicted": f"{p.get('predicted_score')} - {str(p.get('predicted_wickets',0)).zfill(2)} | {p.get('predicted_winner','')}",
                     "Actual": f"{m.get('actual_score')} - {str(m.get('actual_wickets',0)).zfill(2)} | {m.get('actual_winner','')}" if m.get("actual_score") else "-",
                     "⚡": "⚡" if m.get("actual_score") and int(p.get("predicted_score") or 0)==m.get("actual_score") else "",
-                    "Score Pts": sp, "Winner Pts": wp, "Wicket Pts": wkp, "Total": sp+wp+wkp,
+                    "Score Pts": sp,"Winner Pts": wp,"Wicket Pts": wkp,"Total": sp+wp+wkp,
                 })
             st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
     else:
@@ -1222,7 +1152,7 @@ def page_match_details():
 # SEASON PREDICTIONS
 # ══════════════════════════════════════════════════════════════════════════════
 def page_season_predictions():
-    st.title("🌟 Season Predictions")
+    st.markdown("<h1 style='text-align:center'>🌟 Season Predictions</h1>", unsafe_allow_html=True)
     st.markdown("---")
     user   = st.session_state.user
     un     = user["username"]
@@ -1232,14 +1162,14 @@ def page_season_predictions():
         st.subheader("📊 Everyone's Answers")
         for field in SEASON_FIELDS:
             st.markdown(f"**{field['label']}** {'*(just for fun)*' if field['fun'] else ''}")
-            field_rows = [{"Team": get_team(sp["player"]), "Answer": sp.get(field["key"],"-") or "-"} for sp in all_sp]
+            field_rows = [{"Team": get_team(sp["player"]),"Answer": sp.get(field["key"],"-") or "-"} for sp in all_sp]
             st.dataframe(pd.DataFrame(field_rows), use_container_width=True, hide_index=True)
             st.markdown("")
         st.markdown("---")
     elif not locked and all_sp:
         st.info("🔒 Season predictions will be revealed once admin locks them.")
         st.markdown("---")
-    if user["role"] == "guest": return
+    if user["role"]=="guest": return
     existing = db().table("season_predictions").select("*").eq("player",un).execute().data or []
     if existing:
         st.success("✅ Your season predictions are submitted!")
@@ -1257,7 +1187,7 @@ def page_season_predictions():
         if not all(answers[f["key"]].strip() for f in SEASON_FIELDS):
             st.error("Please fill all fields!")
         else:
-            row = {"player": un, "points_awarded": 0}
+            row = {"player": un,"points_awarded": 0}
             for field in SEASON_FIELDS:
                 row[field["key"]] = caps(answers[field["key"]])
             db().table("season_predictions").insert(row).execute()
@@ -1269,7 +1199,7 @@ def page_season_predictions():
 # HOW TO SCORE
 # ══════════════════════════════════════════════════════════════════════════════
 def page_how_to_score():
-    st.title("📖 How to Score")
+    st.markdown("<h1 style='text-align:center'>📖 How to Score</h1>", unsafe_allow_html=True)
     st.markdown("---")
     st.subheader("🎱 BP Pool")
     st.markdown("- Submit 1 BP per match before BP is locked\n- Custom BP: clear with admin on WhatsApp first\n- ✅ Correct → **+3 pts** | ❌ Wrong → **-1 pt** | 🚫 Dismissed → **0 pts**")
@@ -1291,21 +1221,20 @@ def page_how_to_score():
 # ADMIN PANEL
 # ══════════════════════════════════════════════════════════════════════════════
 def page_admin():
-    st.title("⚙️ Admin Panel")
+    st.markdown("<h1 style='text-align:center'>⚙️ Admin Panel</h1>", unsafe_allow_html=True)
     st.markdown("---")
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["➕ Matches", "👥 Players", "📝 Submit on Behalf", "🌟 Season", "🏏 Draft MVP"])
+    tab1,tab2,tab3,tab4,tab5 = st.tabs(["➕ Matches","👥 Players","📝 Submit on Behalf","🌟 Season","🏏 Draft MVP"])
 
     with tab1:
         mn = st.text_input("Match Name (e.g. RCB VS SRH)")
         md = st.date_input("Date")
         if st.button("Add Match"):
             if mn.strip():
-                # Auto assign match number
                 existing_matches = get_matches()
-                next_num = max((m.get("match_number") or 0 for m in existing_matches), default=0) + 1
+                next_num = max((m.get("match_number") or 0 for m in existing_matches), default=0)+1
                 db().table("matches").insert({
-                    "match_name": caps(mn), "match_date": str(md),
-                    "status": "open", "bp_locked": False, "sp_locked": False,
+                    "match_name": caps(mn),"match_date": str(md),
+                    "status": "open","bp_locked": False,"sp_locked": False,
                     "match_number": next_num
                 }).execute()
                 st.success(f"✅ Match #{next_num} added!")
@@ -1313,8 +1242,8 @@ def page_admin():
         st.markdown("---")
         matches = get_matches()
         for m in matches:
-            bp = "🔒" if m.get("bp_locked") else "🟢"
-            sp = "🔒" if m.get("sp_locked") else "🟢"
+            bp="🔒" if m.get("bp_locked") else "🟢"
+            sp="🔒" if m.get("sp_locked") else "🟢"
             st.write(f"**#{m.get('match_number','?')}** 🏏 **{m['match_name']}** | BP:{bp} SP:{sp} | {m.get('status','open')}")
 
     with tab2:
@@ -1324,8 +1253,8 @@ def page_admin():
         if st.button("Add Player"):
             if nu.strip() and np.strip() and nd.strip():
                 db().table("users").insert({
-                    "username": nu.strip(), "password": np.strip(),
-                    "role": nr, "display_name": nd.strip(), "team_name": nt.strip()
+                    "username": nu.strip(),"password": np.strip(),
+                    "role": nr,"display_name": nd.strip(),"team_name": nt.strip()
                 }).execute()
                 st.success(f"✅ {nd} added!")
                 st.rerun()
@@ -1341,12 +1270,11 @@ def page_admin():
         mm      = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(matches)}
         p_names = [u.get("team_name") or u["username"] for u in users]
         sel_player = st.selectbox("Select Player", p_names, key="behalf_player")
-        sel_u = next((u for u in users if (u.get("team_name") or u["username"]) == sel_player), None)
-
+        sel_u = next((u for u in users if (u.get("team_name") or u["username"])==sel_player), None)
         st.markdown("#### 🎱 Submit BP on Behalf")
         bp_matches = [m for m in open_m if not m.get("bp_locked")]
         if bp_matches and sel_u:
-            bp_match = st.selectbox("Match", [f"#{mm.get(m['match_name'],'?')} — {m['match_name']}" for m in bp_matches], key="behalf_bp_match")
+            bp_match = st.selectbox("Match",[f"#{mm.get(m['match_name'],'?')} — {m['match_name']}" for m in bp_matches], key="behalf_bp_match")
             bp_match_name = bp_match.split(" — ",1)[1]
             ex_bp = db().table("pool_bps").select("*").eq("player",sel_u["username"]).eq("match_name",bp_match_name).execute().data or []
             if ex_bp:
@@ -1356,22 +1284,21 @@ def page_admin():
                 if st.button("🚀 Submit BP on Behalf", key="behalf_bp_submit"):
                     if bp_text.strip():
                         db().table("pool_bps").insert({
-                            "match_name": bp_match_name, "player": sel_u["username"],
-                            "bp_type": "custom", "template_key": "admin_behalf", "fill_in": "",
-                            "prediction_text": bp_text.strip(), "status": "pending",
-                            "points_awarded": 0, "submitted_at": datetime.now().strftime("%Y-%m-%d %H:%M")
+                            "match_name": bp_match_name,"player": sel_u["username"],
+                            "bp_type": "custom","template_key": "admin_behalf","fill_in": "",
+                            "prediction_text": bp_text.strip(),"status": "pending",
+                            "points_awarded": 0,"submitted_at": datetime.now().strftime("%Y-%m-%d %H:%M")
                         }).execute()
                         st.success(f"✅ BP submitted for {sel_player}!")
                     else:
                         st.error("Enter BP text!")
         else:
             st.info("No open matches for BP.")
-
         st.markdown("---")
         st.markdown("#### 🔮 Submit SP on Behalf")
         sp_matches = [m for m in open_m if not m.get("sp_locked")]
         if sp_matches and sel_u:
-            sp_match = st.selectbox("Match", [f"#{mm.get(m['match_name'],'?')} — {m['match_name']}" for m in sp_matches], key="behalf_sp_match")
+            sp_match = st.selectbox("Match",[f"#{mm.get(m['match_name'],'?')} — {m['match_name']}" for m in sp_matches], key="behalf_sp_match")
             sp_match_name = sp_match.split(" — ",1)[1]
             ex_sp = db().table("predictions").select("*").eq("player",sel_u["username"]).eq("match_name",sp_match_name).execute().data or []
             if ex_sp:
@@ -1387,9 +1314,9 @@ def page_admin():
                 if st.button("🚀 Submit SP on Behalf", key="behalf_sp_submit"):
                     if behalf_winner:
                         db().table("predictions").insert({
-                            "match_name": sp_match_name, "player": sel_u["username"],
-                            "predicted_score": behalf_score, "predicted_wickets": behalf_wkt,
-                            "predicted_winner": caps(behalf_winner), "points_awarded": 0,
+                            "match_name": sp_match_name,"player": sel_u["username"],
+                            "predicted_score": behalf_score,"predicted_wickets": behalf_wkt,
+                            "predicted_winner": caps(behalf_winner),"points_awarded": 0,
                             "submitted_at": datetime.now().strftime("%Y-%m-%d %H:%M")
                         }).execute()
                         st.success(f"✅ SP submitted for {sel_player}!")
@@ -1404,22 +1331,17 @@ def page_admin():
         if locked:
             st.success("✅ Season predictions are LOCKED — everyone can see them.")
             if st.button("🔓 Unlock Season Predictions"):
-                try:
-                    db().table("app_settings").update({"value":"false"}).eq("key","season_locked").execute()
-                except:
-                    db().table("app_settings").insert({"key":"season_locked","value":"false"}).execute()
+                try: db().table("app_settings").update({"value":"false"}).eq("key","season_locked").execute()
+                except: db().table("app_settings").insert({"key":"season_locked","value":"false"}).execute()
                 st.rerun()
         else:
             st.warning("🔒 Season predictions are hidden from everyone.")
             if st.button("🔒 Lock & Reveal Season Predictions"):
                 try:
                     existing = db().table("app_settings").select("*").eq("key","season_locked").execute().data or []
-                    if existing:
-                        db().table("app_settings").update({"value":"true"}).eq("key","season_locked").execute()
-                    else:
-                        db().table("app_settings").insert({"key":"season_locked","value":"true"}).execute()
-                except:
-                    pass
+                    if existing: db().table("app_settings").update({"value":"true"}).eq("key","season_locked").execute()
+                    else: db().table("app_settings").insert({"key":"season_locked","value":"true"}).execute()
+                except: pass
                 st.success("✅ Locked and revealed!")
                 st.rerun()
         st.markdown("---")
@@ -1444,13 +1366,12 @@ def page_admin():
 
     with tab5:
         st.subheader("🔄 Swap 12th Player")
-        st.caption("Use when a player is injured — swap the sub into the playing 11")
-        swap_team_name = st.selectbox("Select Team", [v["name"] for v in DRAFT_TEAMS.values()], key="swap_team")
-        swap_username  = next((k for k,v in DRAFT_TEAMS.items() if v["name"] == swap_team_name), None)
+        swap_team_name = st.selectbox("Select Team",[v["name"] for v in DRAFT_TEAMS.values()], key="swap_team")
+        swap_username  = next((k for k,v in DRAFT_TEAMS.items() if v["name"]==swap_team_name), None)
         if swap_username:
             swap_players = list(DRAFT_TEAMS[swap_username]["players"])
             playing11    = swap_players[:11]
-            sub          = swap_players[11] if len(swap_players) > 11 else None
+            sub          = swap_players[11] if len(swap_players)>11 else None
             if sub:
                 swap_out = st.selectbox("Swap OUT (injured player from 11)", playing11, key="swap_out")
                 st.info(f"🔄 **{sub}** will come IN | **{swap_out}** will go to sub slot")
@@ -1459,25 +1380,22 @@ def page_admin():
                     swap_players[idx_out] = sub
                     swap_players[11] = swap_out
                     DRAFT_TEAMS[swap_username]["players"] = swap_players
-                    st.success(f"✅ {sub} is now in the playing 11! {swap_out} is the new sub.")
-                    st.info("⚠️ Note: This swap resets when the app restarts. To make it permanent, update the code.")
+                    st.success(f"✅ {sub} is now in the playing 11!")
                     st.rerun()
             else:
                 st.info("No 12th player set for this team.")
         st.markdown("---")
-
         st.subheader("🏏 Update Draft MVP Points")
         st.markdown("""
 **How to update:**
 1. Open [iplt20.com/stats/2026](https://www.iplt20.com/stats/2026) → select **MVP**
-2. Select all text on the page **(Ctrl+A / Cmd+A)** and copy it **(Ctrl+C / Cmd+C)**
-3. Paste it below and hit **Parse & Update**
+2. Select all text **(Ctrl+A / Cmd+A)** and copy **(Ctrl+C / Cmd+C)**
+3. Paste below and hit **Parse & Update**
 """)
         pasted = st.text_area("📋 Paste IPL MVP page content here:", height=200,
                               placeholder="Paste the full copied text from the IPL MVP page...")
 
         def parse_ipl_mvp(text):
-            # Returns dict: {player_name: {pts, mat, wkts, dots, fours, sixes, rank}}
             teams = {"RCB","MI","CSK","KKR","SRH","DC","GT","RR","LSG","PBKS"}
             raw_lines = [l.strip() for l in text.strip().split("\n") if l.strip()]
             results = {}
@@ -1485,7 +1403,7 @@ def page_admin():
             i = 0
             while i < len(raw_lines):
                 line = raw_lines[i]
-                if i + 1 < len(raw_lines) and raw_lines[i+1].upper() in teams:
+                if i+1 < len(raw_lines) and raw_lines[i+1].upper() in teams:
                     player_name = line
                     i += 2
                     if i < len(raw_lines):
@@ -1493,86 +1411,72 @@ def page_admin():
                         try:
                             rank += 1
                             results[player_name] = {
-                                "pts":   float(stats[0]) if len(stats) > 0 else 0,
-                                "mat":   int(stats[1])   if len(stats) > 1 else 0,
-                                "wkts":  int(stats[2])   if len(stats) > 2 else 0,
-                                "dots":  int(stats[3])   if len(stats) > 3 else 0,
-                                "fours": int(stats[4])   if len(stats) > 4 else 0,
-                                "sixes": int(stats[5])   if len(stats) > 5 else 0,
+                                "pts":   float(stats[0]) if len(stats)>0 else 0,
+                                "mat":   int(stats[1])   if len(stats)>1 else 0,
+                                "wkts":  int(stats[2])   if len(stats)>2 else 0,
+                                "dots":  int(stats[3])   if len(stats)>3 else 0,
+                                "fours": int(stats[4])   if len(stats)>4 else 0,
+                                "sixes": int(stats[5])   if len(stats)>5 else 0,
                                 "rank":  rank,
                             }
-                        except:
-                            pass
+                        except: pass
                         i += 1
                     continue
                 i += 1
             return results
+
         if st.button("🔄 Parse & Update MVP Points", use_container_width=True):
             if not pasted.strip():
                 st.error("Please paste the IPL MVP page content first!")
             else:
                 parsed = parse_ipl_mvp(pasted)
                 if not parsed:
-                    st.error("Could not parse any player data. Make sure you copied the full page text.")
+                    st.error("Could not parse any player data.")
                 else:
                     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
                     updated = 0
                     matched = []
-                    unmatched = []
-
-                    # Get all draft players
                     all_draft_players = []
                     for team_data in DRAFT_TEAMS.values():
                         all_draft_players.extend(team_data["players"])
-
                     for draft_player in all_draft_players:
                         matched_stats = None
                         draft_lower = draft_player.lower().strip()
-
-                        # EXACT match only — case insensitive
                         for ipl_name, ipl_stats in parsed.items():
-                            if ipl_name.lower().strip() == draft_lower:
+                            if ipl_name.lower().strip()==draft_lower:
                                 matched_stats = ipl_stats
                                 break
-
-                        pts  = matched_stats["pts"]  if matched_stats else 0
-                        mat  = matched_stats["mat"]  if matched_stats else 0
-                        wkts = matched_stats["wkts"] if matched_stats else 0
-                        dots = matched_stats["dots"] if matched_stats else 0
-                        fours= matched_stats["fours"]if matched_stats else 0
-                        sixes= matched_stats["sixes"]if matched_stats else 0
+                        pts   = matched_stats["pts"]  if matched_stats else 0
+                        mat   = matched_stats["mat"]  if matched_stats else 0
+                        wkts  = matched_stats["wkts"] if matched_stats else 0
+                        dots  = matched_stats["dots"] if matched_stats else 0
+                        fours = matched_stats["fours"]if matched_stats else 0
+                        sixes = matched_stats["sixes"]if matched_stats else 0
                         rank_val = matched_stats["rank"] if matched_stats else 0
-
                         row_data = {
-                            "mvp_points": pts, "updated_at": now_str,
-                            "mat": mat, "wkts": wkts, "dots": dots,
-                            "fours": fours, "sixes": sixes, "ipl_rank": rank_val
+                            "mvp_points": pts,"updated_at": now_str,
+                            "mat": mat,"wkts": wkts,"dots": dots,
+                            "fours": fours,"sixes": sixes,"ipl_rank": rank_val
                         }
-
-                        existing = db().table("draft_player_points").select("*").eq("player_name", draft_player).execute().data or []
-                        if existing:
-                            db().table("draft_player_points").update(row_data).eq("player_name", draft_player).execute()
+                        existing_row = db().table("draft_player_points").select("*").eq("player_name",draft_player).execute().data or []
+                        if existing_row: db().table("draft_player_points").update(row_data).eq("player_name",draft_player).execute()
                         else:
                             row_data["player_name"] = draft_player
                             db().table("draft_player_points").insert(row_data).execute()
-                        if pts > 0:
-                            matched.append(f"{draft_player} → {pts} pts")
+                        if pts>0: matched.append(f"{draft_player} → {pts} pts")
                         updated += 1
-
                     st.success(f"✅ Updated {updated} players!")
                     if matched:
                         with st.expander(f"✅ Matched {len(matched)} players"):
-                            for m in matched:
-                                st.write(m)
-
+                            for m in matched: st.write(m)
         st.markdown("---")
         st.subheader("Current Points")
         all_player_pts = db().table("draft_player_points").select("*").execute().data or []
         if all_player_pts:
             pts_df = pd.DataFrame([{
                 "Player": r["player_name"],
-                "MVP Points": r.get("mvp_points", 0),
-                "Updated": r.get("updated_at", "")
+                "MVP Points": r.get("mvp_points",0),
+                "Updated": r.get("updated_at","")
             } for r in sorted(all_player_pts, key=lambda x: float(x.get("mvp_points") or 0), reverse=True)])
             st.dataframe(pts_df, use_container_width=True, hide_index=True)
         else:
@@ -1589,7 +1493,7 @@ def main():
             st.session_state[k] = v
 
     if st.session_state.user is None:
-        st.title("🏏 LFxCT")
+        st.markdown("<h1 style='text-align:center'>🏏 LFxCT</h1>", unsafe_allow_html=True)
         st.markdown("---")
         c1,c2,c3 = st.columns([1,2,1])
         with c2:
@@ -1619,14 +1523,14 @@ def main():
 
     c1,c2,c3 = st.columns([2,4,1])
     with c1:
-        team_display = get_team(user["username"]) if role != "guest" else "Guest"
+        team_display = get_team(user["username"]) if role!="guest" else "Guest"
         st.markdown("**🏏 LFxCT**")
         st.caption(team_display)
     with c2:
         sel = st.selectbox("nav", pages,
             index=pages.index(st.session_state.page),
             label_visibility="collapsed", key="top_nav")
-        if sel != st.session_state.page:
+        if sel!=st.session_state.page:
             st.session_state.page = sel
             st.rerun()
     with c3:
