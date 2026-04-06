@@ -192,32 +192,6 @@ def sort_matches_today_first(matches):
     rest  = [m for m in matches if not is_today(m.get("match_date",""))]
     return today + rest
 
-def show_today_match_card(matches):
-    """Show a highlighted card for today's match if one exists"""
-    today_matches = [m for m in matches if is_today(m.get("match_date",""))]
-    if not today_matches:
-        return
-    for m in today_matches:
-        mn  = m.get("match_number","?")
-        bp  = "🔒 Locked" if m.get("bp_locked") else "🟢 Open"
-        sp  = "🔒 Locked" if m.get("sp_locked") else "🟢 Open"
-        sta = m.get("status","open").upper()
-        st.markdown(f"""
-<div style="background:linear-gradient(135deg,#1a3a2a,#0d2a1a);border:2px solid #00cc66;
-border-radius:12px;padding:16px 20px;margin-bottom:12px;">
-<div style="display:flex;justify-content:space-between;align-items:center">
-  <div>
-    <div style="color:#00cc66;font-size:0.75em;font-weight:bold;letter-spacing:1px">TODAY'S MATCH</div>
-    <div style="color:#ffffff;font-size:1.1em;font-weight:bold;margin-top:2px">Match #{mn} — {m["match_name"]}</div>
-    <div style="color:#aaaaaa;font-size:0.8em;margin-top:4px">{m.get("match_date","")}</div>
-  </div>
-  <div style="text-align:right;font-size:0.82em">
-    <div style="color:#cccccc">BP: <b style="color:#00cc66">{bp}</b></div>
-    <div style="color:#cccccc;margin-top:2px">SP: <b style="color:#00cc66">{sp}</b></div>
-    <div style="color:#cccccc;margin-top:2px">Status: <b style="color:#ffffff">{sta}</b></div>
-  </div>
-</div>
-</div>""", unsafe_allow_html=True)
 
 def calc_streak_from_preds(username, all_preds):
     my_preds = [p for p in all_preds if p.get("player")==username and p.get("actual_score") is not None]
@@ -886,9 +860,8 @@ def page_bp_pool():
         st.warning("⏳ No open matches for BP submission.")
         return
     mm    = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(get_matches())}
-    show_today_match_card(matches)
     matches = sort_matches_today_first(matches)
-    match = st.selectbox("Select Match",[f"#{mm.get(m['match_name'],'?')} — {m['match_name']}{'  ← TODAY' if is_today(m.get('match_date','')) else ''}" for m in matches])
+    match = st.selectbox("Select Match",[f"#{mm.get(m['match_name'],'?')} — {m['match_name']}{'  ●' if is_today(m.get('match_date','')) else ''}" for m in matches])
     match_name = match.split(" — ",1)[1]
     existing = db().table("pool_bps").select("*").eq("player",st.session_state.user["username"]).eq("match_name",match_name).execute().data or []
     if existing:
@@ -965,9 +938,8 @@ def page_submit_sp():
         st.warning("⏳ No open matches.")
         return
     mm    = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(get_matches())}
-    show_today_match_card(matches)
     matches = sort_matches_today_first(matches)
-    match = st.selectbox("Select Match",[f"#{mm.get(m['match_name'],'?')} — {m['match_name']}{'  ← TODAY' if is_today(m.get('match_date','')) else ''}" for m in matches])
+    match = st.selectbox("Select Match",[f"#{mm.get(m['match_name'],'?')} — {m['match_name']}{'  ●' if is_today(m.get('match_date','')) else ''}" for m in matches])
     match_name = match.split(" — ",1)[1]
     existing = db().table("predictions").select("*").eq("player",st.session_state.user["username"]).eq("match_name",match_name).execute().data or []
     if existing:
@@ -1070,10 +1042,9 @@ def page_lock_cancel():
     user = st.session_state.user
     now  = datetime.now().strftime("%Y-%m-%d %H:%M")
     mm   = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(matches)}
-    show_today_match_card(matches)
     sorted_matches = sort_matches_today_first(matches)
     for m in sorted_matches:
-        today_tag = " 🟢 TODAY" if is_today(m.get("match_date","")) else ""
+        today_tag = " ●" if is_today(m.get("match_date","")) else ""
         with st.expander(f"Match #{mm[m['match_name']]} — {m['match_name']} | {m.get('status','open').upper()}{today_tag}"):
             c1,c2 = st.columns(2)
             with c1:
@@ -1122,9 +1093,8 @@ def page_match_details():
     matches = get_matches()
     if not matches: st.info("No matches yet."); return
     mm      = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(matches)}
-    show_today_match_card(matches)
     sorted_matches = sort_matches_today_first(matches)
-    options = [f"Match #{mm[m['match_name']]} — {m['match_name']}{'  ← TODAY' if is_today(m.get('match_date','')) else ''}" for m in sorted_matches]
+    options = [f"Match #{mm[m['match_name']]} — {m['match_name']}{'  ●' if is_today(m.get('match_date','')) else ''}" for m in sorted_matches]
     idx     = st.selectbox("Select Match", range(len(sorted_matches)), format_func=lambda i: options[i])
     matches = sorted_matches
     m       = matches[idx]
