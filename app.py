@@ -36,16 +36,16 @@ ALL_ROLES   = ["player", "admin"]
 
 # ── Draft League Teams ─────────────────────────────────────────────────────────
 DRAFT_TEAMS = {
-    "dinu":   {"name": "Dinesh Chargers",          "players": ["Abhishek Sharma","Finn Allen","Mayank Yadav","Romario Shepherd","Avesh Khan","Mitchell Marsh","Pathum Nissanka","Aquib Nabi","Kartik Tyagi","Naman Dhir","Urvil Patel","Prashant Veer"]},
+    "dinu":   {"name": "Dinesh Chargers",          "players": ["Abhishek Sharma","Finn Allen","Mayank Yadav","Romario Shepherd","Avesh Khan","Mitchell Marsh","Pathum Nissanka","Aquib Nabi","Kartik Tyagi","Naman Dhir","Prashant Veer","Urvil Patel"]},
     "yash":   {"name": "Yash Swaggers",            "players": ["Shubman Gill","Mohammed Siraj","Travis Head","Prabhsimran Singh","Rashid Khan","T Natarajan","Mohammed Shami","Rohit Sharma","Tim David","Mohsin Khan","Rahul Tripathi","Abdul Samad"]},
-    "sou":    {"name": "Sou Godfathers",           "players": ["Virat Kohli","Vaibhav Sooryavanshi","Nicholas Pooran","Riyan Parag","Kuldeep Yadav","Ravindra Jadeja","Krunal Pandya","Jofra Archer","Jaydev Unadkat","Kartik Sharma","Matt Henry","Sherfane Rutherford"]},
+    "sou":    {"name": "Sou Godfathers",           "players": ["Virat Kohli","Vaibhav Sooryavanshi","Nicholas Pooran","Riyan Parag","Kuldeep Yadav","Ravindra Jadeja","Krunal Pandya","Jofra Archer","Sherfane Rutherford","Jaydev Unadkat","Kartik Sharma","Matt Henry"]},
     "vamshi": {"name": "Vamshi Hurricanes",        "players": ["Shreyas Iyer","Angkrish Raghuvanshi","Yuzvendra Chahal","Harshal Patel","Jacob Bethell","Khaleel Ahmed","Aiden Markram","Ryan Rickelton","Ramandeep Singh","Zeeshan Ansari","Suyash Sharma","Sameer Rizvi"]},
     "minto":  {"name": "Minato Maniacs",           "players": ["Sanju Samson","Heinrich Klaasen","Sunil Narine","Dewald Brevis","Liam Livingstone","MS Dhoni","Venky Iyer","Deepak Chahar","Mukesh Kumar","Devdutt Padikkal","Karun Nair","Ashwani Kumar"]},
     "snehit": {"name": "Snehit Synergy",           "players": ["Yashasvi Jaiswal","Bhuvneshwar Kumar","Phil Salt","Jitesh Sharma","Aniket Verma","Josh Hazelwood","Will Jacks","Marco Jansen","Shashank Singh","Salil Arora","Mangesh Yadav","Vignesh Puthur"]},
     "shank":  {"name": "Shank Tacticos",           "players": ["Hardik Pandya","Noor Ahmad","Tilak Varma","Priyansh Arya","Varun Chakaravarthy","Dhruv Jurel","Donovan Ferreira","Marcus Stoinis","Anukul Roy","Nitish Rana","Vaibhav Arora","Matheesha Pathirana"]},
     "visu":   {"name": "Visu Vijayasena",          "players": ["Sai Sudharsan","Rishabh Pant","Shivam Dube","Washington Sundar","Nehal Wadhera","Prasidh Krishna","R Sai Kishore","Jos Buttler","Nandre Burger","Sarfaraz Khan","Matthew Breetzke","Azmatullah Omarzai"]},
     "kartik": {"name": "Kartik Kryptonites",       "players": ["Jasprit Bumrah","Ishan Kishan","Tristan Stubbs","Rajat Patidar","Cooper Connolly","Kagiso Rabada","Nitish Kumar Reddy","Glenn Phillips","Ajinkya Rahane","Abhishek Porel","Mayank Markande","Harpreet Brar"]},
-    "vvs":    {"name": "Satwik Quantum Crusaders", "players": ["Axar Patel","Cameron Green","Arshdeep Singh","Shimron Hetmyer","Josh Inglis","Ayush Mhatre","Sandeep Sharma","Mitchell Santner","Digvesh Singh","Ruturaj Gaikwad","Shivang Kumar","Vipraj Nigam"]},
+    "vvs":    {"name": "Satwik Quantum Crusaders", "players": ["Axar Patel","Cameron Green","Arshdeep Singh","Shimron Hetmyer","Josh Inglis","Ayush Badoni","Sandeep Sharma","Mitchell Santner","Digvesh Singh","Ruturaj Gaikwad","Shivang Kumar","Vipraj Nigam"]},
     "hari":   {"name": "Ruthvenger Legends",       "players": ["K L Rahul","Surya Kumar Yadav","Quinton de Kock","Trent Boult","David Miller","Ravi Bishnoi","Rinku Singh","Lungi Ngidi","Ashutosh Sharma","Rahul Chahar","Shardul Thakur","Rahul Tewatia"]},
 }
 
@@ -358,21 +358,42 @@ max-width:480px;margin:0 auto 8px auto;padding:0 4px;box-sizing:border-box;">
     # ── Positions 4 onwards ───────────────────────────────────────────────────
     if len(rows) > 3:
         rest = rows[3:]
+        total_rest = len(rest)
         rest_html = '<div style="max-width:480px;margin:0 auto;">'
         for i, r in enumerate(rest):
             logo_url_str = logo_url(r["_un"])
             pos = i + 4
+            # gradient: 0=darkgreen, middle=orange, end=red
+            t = i / max(total_rest - 1, 1)
+            if t < 0.5:
+                t2 = t / 0.5
+                bg_r = int(20 + t2 * 40)
+                bg_g = int(55 - t2 * 20)
+                bg_b = int(10)
+                txt_r = int(80 + t2 * 175)
+                txt_g = int(220 - t2 * 100)
+                txt_b = int(80 - t2 * 60)
+            else:
+                t2 = (t - 0.5) / 0.5
+                bg_r = int(60 + t2 * 40)
+                bg_g = int(35 - t2 * 30)
+                bg_b = int(10 - t2 * 5)
+                txt_r = int(255)
+                txt_g = int(120 - t2 * 100)
+                txt_b = int(20 - t2 * 15)
+            bg_col  = f"rgb({bg_r},{bg_g},{bg_b})"
+            txt_col = f"rgb({txt_r},{txt_g},{txt_b})"
             rest_html += f"""
 <div style="display:flex;align-items:center;justify-content:space-between;
-padding:10px 14px;margin:4px 0;border-radius:8px;background:#111827;
-border:1px solid #2d3748;box-sizing:border-box">
+padding:10px 14px;margin:4px 0;border-radius:8px;background:{bg_col};
+box-sizing:border-box">
   <div style="display:flex;align-items:center;gap:10px">
-    <span style="color:#9ca3af;font-weight:bold;min-width:20px">{pos}</span>
+    <span style="color:{txt_col};font-weight:bold;min-width:20px">{pos}</span>
     <img src="{logo_url_str}" width="32" height="32"
          style="border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">
-    <span style="color:#fff;font-weight:600;font-size:0.9em">{r["Team"]}</span>
+    <span style="color:#ffffff;font-weight:600;font-size:0.9em">{r["Team"]}</span>
   </div>
-  <span style="color:#90ee90;font-weight:bold;font-size:1em">{r["Total"]} pts</span>
+  <span style="color:{txt_col};font-weight:bold;font-size:1em">{r["Total"]} pts</span>
 </div>"""
         rest_html += "</div>"
         st.markdown(rest_html, unsafe_allow_html=True)
@@ -837,6 +858,7 @@ def page_hall_of_fame():
             score_pts += sp; winner_pts += wp; wicket_pts += wkp
         bp_total  = int(sum(float(b.get("points_awarded") or 0) for b in ubps))
         str_total = int(sum(float(s.get("bonus_points") or 0) for s in (db().table("streaks").select("bonus_points").eq("player",un).execute().data or [])))
+        bp_variety = len(set(b.get("template_key","") for b in ubps if b.get("template_key","") not in ["","custom","admin_behalf"]))
         stats[un] = {
             "team": team, "username": un,
             "total": score_pts+winner_pts+wicket_pts+bp_total+str_total,
@@ -851,6 +873,7 @@ def page_hall_of_fame():
             "corr_w": sum(1 for p in up if caps(p.get("predicted_winner",""))==caps(p.get("actual_winner",""))),
             "corr_wk": sum(1 for p in up if int(p.get("predicted_wickets") or -1)==int(p.get("actual_wickets") or -2)),
             "top_tmpl_cnt": max(tmpl_counts.values()) if tmpl_counts else 0,
+            "bp_variety": bp_variety,
             "cur_streak": calc_streak_from_preds(un, all_preds),
         }
     def top3(key, rev=True):
@@ -865,6 +888,7 @@ def page_hall_of_fame():
         render_podium('🏏 "Team Whisperer"',        "Most correct match winner predictions.",                                top3("corr_w"),            "Correct Winners")
         render_podium('🎳 "Wicket Whisperer"',      "Most correct wicket predictions.",                                      top3("corr_wk"),           "Correct Wickets")
         render_podium('🏃 "Never Misses"',          "Best attendance. Always there, no excuses.",                            top3("attended"),          "Matches Attended")
+        render_podium('🎨 "Most Variety"',           "Most unique BP templates used. Actually explores the pool.",            top3("bp_variety"),        "Unique BPs Used")
         render_podium('🔥 "On Demon Time"',         "Longest active winning streak.",                                        top3("cur_streak"),        "Current Streak")
     with col2:
         render_podium('💀 "Absolute Clown"',        "Most BPs wrong. Boldly wrong every single time.",                       top3("bp_wrong"),          "BPs Wrong")
@@ -873,7 +897,7 @@ def page_hall_of_fame():
         render_podium('💨 "What Are You Watching"', "Highest margin of error. Predicted 200, score was 156. Every time.",    top3("margin"),            "Margin of Error")
         render_podium('🪣 "Touch Grass"',           "Least total points. Might need a different hobby.",                     top3("total",rev=False),   "Total Points")
         render_podium('🛋️ "Checked Out"',           "Most matches missed. Drought so long it has its own Wikipedia page.",   top3("attended",rev=False),"Matches Attended")
-        render_podium('🔒 "Boring But Elite"',      "Most 1st place finishes. Consistent. Boring. Winning.",                 top3("first"),             "1st Places")
+        render_podium('🔒 "The Elite"',      "Most 1st place finishes. Consistent. Boring. Winning.",                 top3("first"),             "1st Places")
         render_podium('🃏 "One Trick Pony"',        "Same BP every match. Found one move and never looked back.",            top3("top_tmpl_cnt"),      "Same BP Used")
 
 
