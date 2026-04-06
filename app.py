@@ -861,7 +861,7 @@ def page_bp_pool():
         return
     mm    = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(get_matches())}
     matches = sort_matches_today_first(matches)
-    match = st.selectbox("Select Match",[f"#{mm.get(m['match_name'],'?')} — {m['match_name']}{'  ● TODAY' if is_today(m.get('match_date','')) else ''}" for m in matches])
+    match = st.selectbox("Select Match",[f"#{mm.get(m['match_name'],'?')} — {m['match_name']}{'  *' if is_today(m.get('match_date','')) else ''}" for m in matches])
     match_name = match.split(" — ",1)[1]
     existing = db().table("pool_bps").select("*").eq("player",st.session_state.user["username"]).eq("match_name",match_name).execute().data or []
     if existing:
@@ -939,7 +939,7 @@ def page_submit_sp():
         return
     mm    = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(get_matches())}
     matches = sort_matches_today_first(matches)
-    match = st.selectbox("Select Match",[f"#{mm.get(m['match_name'],'?')} — {m['match_name']}{'  ● TODAY' if is_today(m.get('match_date','')) else ''}" for m in matches])
+    match = st.selectbox("Select Match",[f"#{mm.get(m['match_name'],'?')} — {m['match_name']}{'  *' if is_today(m.get('match_date','')) else ''}" for m in matches])
     match_name = match.split(" — ",1)[1]
     existing = db().table("predictions").select("*").eq("player",st.session_state.user["username"]).eq("match_name",match_name).execute().data or []
     if existing:
@@ -1044,7 +1044,7 @@ def page_lock_cancel():
     mm   = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(matches)}
     sorted_matches = sort_matches_today_first(matches)
     for m in sorted_matches:
-        today_tag = "  ● TODAY" if is_today(m.get("match_date","")) else ""
+        today_tag = "  *" if is_today(m.get("match_date","")) else ""
         with st.expander(f"Match #{mm[m['match_name']]} — {m['match_name']} | {m.get('status','open').upper()}{today_tag}"):
             c1,c2 = st.columns(2)
             with c1:
@@ -1094,9 +1094,8 @@ def page_match_details():
     if not matches: st.info("No matches yet."); return
     mm      = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(matches)}
     sorted_matches = sort_matches_today_first(matches)
-    options = [f"Match #{mm[m['match_name']]} — {m['match_name']}{'  ●' if is_today(m.get('match_date','')) else ''}" for m in sorted_matches]
-    matches = sorted_matches
-    m       = matches[idx]
+    options = [f"Match #{mm[m['match_name']]} — {m['match_name']}{'  *' if is_today(m.get('match_date','')) else ''}" for m in sorted_matches]
+    idx     = st.selectbox("Select Match", range(len(sorted_matches)), format_func=lambda i: options[i])
     st.markdown(f"### 🏏 Match #{mm[m['match_name']]} — {m['match_name']} | {m.get('match_date','')}")
     c1,c2,c3 = st.columns(3)
     c1.metric("BP","🔒 Locked" if m.get("bp_locked") else "🟢 Open")
