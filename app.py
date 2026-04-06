@@ -1364,21 +1364,28 @@ def page_admin():
     with tab4:
         st.markdown("<h3 style='text-align:center'>🌟 Season Predictions</h3>", unsafe_allow_html=True)
         locked = is_season_locked()
+        if st.session_state.get("season_lock_action"):
+            action = st.session_state.season_lock_action
+            st.session_state.season_lock_action = None
+            try:
+                existing = db().table("app_settings").select("*").eq("key","season_locked").execute().data or []
+                if existing:
+                    db().table("app_settings").update({"value": action}).eq("key","season_locked").execute()
+                else:
+                    db().table("app_settings").insert({"key":"season_locked","value": action}).execute()
+            except Exception as e:
+                st.error(f"Error: {e}")
+            st.rerun()
+
         if locked:
             st.success("✅ Season predictions are LOCKED — everyone can see them.")
             if st.button("🔓 Unlock Season Predictions"):
-                try: db().table("app_settings").update({"value":"false"}).eq("key","season_locked").execute()
-                except: db().table("app_settings").insert({"key":"season_locked","value":"false"}).execute()
+                st.session_state.season_lock_action = "false"
                 st.rerun()
         else:
             st.warning("🔒 Season predictions are hidden from everyone.")
             if st.button("🔒 Lock & Reveal Season Predictions"):
-                try:
-                    existing = db().table("app_settings").select("*").eq("key","season_locked").execute().data or []
-                    if existing: db().table("app_settings").update({"value":"true"}).eq("key","season_locked").execute()
-                    else: db().table("app_settings").insert({"key":"season_locked","value":"true"}).execute()
-                except: pass
-                st.success("✅ Locked and revealed!")
+                st.session_state.season_lock_action = "true"
                 st.rerun()
         st.markdown("---")
         st.markdown("<h3 style='text-align:center'>Award Season Points</h3>", unsafe_allow_html=True)
