@@ -348,7 +348,7 @@ border:2px solid {border_color};padding:12px 8px 10px 8px;box-sizing:border-box;
 </div>"""
         podium_html = f"""
 <div style="display:flex;align-items:flex-end;justify-content:center;gap:6px;
-width:100%;padding:0 4px;box-sizing:border-box;margin-bottom:8px">
+max-width:480px;margin:0 auto 8px auto;padding:0 4px;box-sizing:border-box;">
   {podium_card(p2, 160, "#C0C0C0", "🥈", "#1a1a2e")}
   {podium_card(p1, 200, "#FFD700", "🥇", "#1a2a0a")}
   {podium_card(p3, 130, "#CD7F32", "🥉", "#1a1a2e")}
@@ -358,7 +358,7 @@ width:100%;padding:0 4px;box-sizing:border-box;margin-bottom:8px">
     # ── Positions 4 onwards ───────────────────────────────────────────────────
     if len(rows) > 3:
         rest = rows[3:]
-        rest_html = '<div style="width:100%">'
+        rest_html = '<div style="max-width:480px;margin:0 auto;">'
         for i, r in enumerate(rest):
             logo_url_str = logo_url(r["_un"])
             pos = i + 4
@@ -450,7 +450,8 @@ def page_draft_league():
     with tab2:
         st.subheader("👥 Team Squads & Points")
         all_player_pts = db().table("draft_player_points").select("*").execute().data or []
-        pts_map = {row["player_name"].lower(): float(row.get("mvp_points") or 0) for row in all_player_pts}
+        pts_map  = {row["player_name"].lower(): float(row.get("mvp_points") or 0) for row in all_player_pts}
+        stats_map = {row["player_name"].lower(): row for row in all_player_pts}
 
         selected_team = st.selectbox("Select Team", [v["name"] for v in DRAFT_TEAMS.values()])
         team_username = next((k for k, v in DRAFT_TEAMS.items() if v["name"] == selected_team), None)
@@ -467,29 +468,41 @@ def page_draft_league():
             st.markdown("---")
 
             st.markdown("**🏏 Playing 11**")
-            player_rows = []
-            for p in playing11:
-                pts = round(pts_map.get(p.lower(), 0), 1)
-                player_rows.append({
-                    "Player":     p,
-                    "MVP Points": pts,
-                    "Status":     "✅ Scored" if pts > 0 else "⏳ Yet to play"
-                })
-            player_rows.sort(key=lambda x: x["MVP Points"], reverse=True)
+            def player_stat_row(p):
+                s = stats_map.get(p.lower(), {})
+                pts = round(float(s.get("mvp_points") or 0), 1)
+                return {
+                    "Rank":   int(s.get("ipl_rank") or 0) or "-",
+                    "Player": p,
+                    "Pts":    f"{pts:.1f}",
+                    "Mat":    int(s.get("mat") or 0),
+                    "Wkts":   int(s.get("wkts") or 0),
+                    "Dots":   int(s.get("dots") or 0),
+                    "4s":     int(s.get("fours") or 0),
+                    "6s":     int(s.get("sixes") or 0),
+                }
+
+            player_rows = [player_stat_row(p) for p in playing11]
+            player_rows.sort(key=lambda x: float(x["Pts"]), reverse=True)
             df_players = pd.DataFrame(player_rows)
-            df_players["MVP Points"] = df_players["MVP Points"].apply(lambda x: f"{x:.1f}")
 
             def style_players(df):
                 s = pd.DataFrame("", index=df.index, columns=df.columns)
-                s["MVP Points"] = "background-color:#1a3a1a;color:#90ee90;font-weight:bold"
+                s["Pts"] = "background-color:#1a3a1a;color:#90ee90;font-weight:bold"
                 return s
             st.dataframe(df_players.style.apply(style_players, axis=None),
                         use_container_width=True, hide_index=True)
 
             if sub:
                 st.markdown("---")
-                sub_pts = round(pts_map.get(sub.lower(), 0), 1)
-                st.markdown(f"**🔄 12th Player (Sub):** {sub} — {sub_pts} pts *(not counted in total)*")
+                sub_row = player_stat_row(sub)
+                st.markdown(
+                    f"**🔄 12th Player (Sub):** {sub} — "
+                    f"**{sub_row['Pts']} pts** | "
+                    f"Mat:{sub_row['Mat']} Wkts:{sub_row['Wkts']} "
+                    f"Dots:{sub_row['Dots']} 4s:{sub_row['4s']} 6s:{sub_row['6s']} "
+                    f"*(not counted in total)*"
+                )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -999,7 +1012,7 @@ def page_bp_results():
     filtered = pending if sel=="All" else [b for b in pending if b["match_name"]==sel]
     for b in filtered:
         bp_type = "💡 Custom" if b.get("bp_type")=="custom" else "🎱 Pool"
-        st.markdown(f"**{get_team(b['player'])}** (`{b['player']}`) — {b['match_name']} {bp_type}")
+        st.markdown(f"**{b['player']}** — {b['match_name']} {bp_type}")
         st.markdown(f"*{b['prediction_text']}*")
         c1,c2,c3 = st.columns(3)
         with c1:
@@ -1130,7 +1143,7 @@ def page_match_details():
                 sp_today, wn_today, wk_today = breakdown_sp_from_pred(p, all_preds_match)
             if b: bp_today = int(float(b[0].get("points_awarded") or 0))
             day_rows.append({
-                "Team": f"{u.get('team_name') or u['username']} ({u['username']})",
+                "Team": u["username"],
                 "Score Pts": sp_today, "Winner Pts": wn_today,
                 "Wicket Pts": wk_today, "BP Pts": bp_today,
                 "Total Today": sp_today+wn_today+wk_today+bp_today
@@ -1147,7 +1160,7 @@ def page_match_details():
         else:
             st.dataframe(pd.DataFrame([{
                 "": "✅" if b.get("result")=="correct" else "❌" if b.get("result")=="wrong" else "🚫" if b.get("result")=="dismissed" else "⏳",
-                "Team": f"{get_team(b['player'])} ({b['player']})",
+                "Team": b["player"],
                 "Prediction": b["prediction_text"],
                 "Type": "💡" if b.get("bp_type")=="custom" else "🎱",
                 "Pts": int(float(b.get("points_awarded",0))),
@@ -1170,7 +1183,7 @@ def page_match_details():
                     sp, wp, wkp = breakdown_sp_from_pred(p, preds)
                 rows.append({
                     "": "🥇" if i==0 and (p.get("points_awarded") or 0)>=4 else "",
-                    "Team": f"{get_team(p['player'])} ({p['player']})",
+                    "Team": p["player"],
                     "Predicted": f"{p.get('predicted_score')} - {str(p.get('predicted_wickets',0)).zfill(2)} | {p.get('predicted_winner','')}",
                     "Actual": f"{m.get('actual_score')} - {str(m.get('actual_wickets',0)).zfill(2)} | {m.get('actual_winner','')}" if m.get("actual_score") else "-",
                     "⚡": "⚡" if m.get("actual_score") and int(p.get("predicted_score") or 0)==m.get("actual_score") else "",
@@ -1440,9 +1453,11 @@ def page_admin():
                               placeholder="Paste the full copied text from the IPL MVP page...")
 
         def parse_ipl_mvp(text):
+            # Returns dict: {player_name: {pts, mat, wkts, dots, fours, sixes, rank}}
             teams = {"RCB","MI","CSK","KKR","SRH","DC","GT","RR","LSG","PBKS"}
             raw_lines = [l.strip() for l in text.strip().split("\n") if l.strip()]
             results = {}
+            rank = 0
             i = 0
             while i < len(raw_lines):
                 line = raw_lines[i]
@@ -1451,12 +1466,19 @@ def page_admin():
                     i += 2
                     if i < len(raw_lines):
                         stats = raw_lines[i].split()
-                        if stats:
-                            try:
-                                pts = float(stats[0])
-                                results[player_name] = pts
-                            except:
-                                pass
+                        try:
+                            rank += 1
+                            results[player_name] = {
+                                "pts":   float(stats[0]) if len(stats) > 0 else 0,
+                                "mat":   int(stats[1])   if len(stats) > 1 else 0,
+                                "wkts":  int(stats[2])   if len(stats) > 2 else 0,
+                                "dots":  int(stats[3])   if len(stats) > 3 else 0,
+                                "fours": int(stats[4])   if len(stats) > 4 else 0,
+                                "sixes": int(stats[5])   if len(stats) > 5 else 0,
+                                "rank":  rank,
+                            }
+                        except:
+                            pass
                         i += 1
                     continue
                 i += 1
@@ -1480,28 +1502,35 @@ def page_admin():
                         all_draft_players.extend(team_data["players"])
 
                     for draft_player in all_draft_players:
-                        pts = None
-                        matched_name = None
+                        matched_stats = None
                         draft_lower = draft_player.lower().strip()
 
                         # EXACT match only — case insensitive
-                        # No partial matching to avoid wrong assignments
-                        for ipl_name, ipl_pts in parsed.items():
+                        for ipl_name, ipl_stats in parsed.items():
                             if ipl_name.lower().strip() == draft_lower:
-                                pts = ipl_pts
-                                matched_name = ipl_name
+                                matched_stats = ipl_stats
                                 break
 
-                        # If still no match, set to 0 (player hasn't played)
-                        if pts is None:
-                            pts = 0
+                        pts  = matched_stats["pts"]  if matched_stats else 0
+                        mat  = matched_stats["mat"]  if matched_stats else 0
+                        wkts = matched_stats["wkts"] if matched_stats else 0
+                        dots = matched_stats["dots"] if matched_stats else 0
+                        fours= matched_stats["fours"]if matched_stats else 0
+                        sixes= matched_stats["sixes"]if matched_stats else 0
+                        rank_val = matched_stats["rank"] if matched_stats else 0
 
-                        # Always save — even 0 — so wrong old values get overwritten
+                        row_data = {
+                            "mvp_points": pts, "updated_at": now_str,
+                            "mat": mat, "wkts": wkts, "dots": dots,
+                            "fours": fours, "sixes": sixes, "ipl_rank": rank_val
+                        }
+
                         existing = db().table("draft_player_points").select("*").eq("player_name", draft_player).execute().data or []
                         if existing:
-                            db().table("draft_player_points").update({"mvp_points": pts, "updated_at": now_str}).eq("player_name", draft_player).execute()
+                            db().table("draft_player_points").update(row_data).eq("player_name", draft_player).execute()
                         else:
-                            db().table("draft_player_points").insert({"player_name": draft_player, "mvp_points": pts, "updated_at": now_str}).execute()
+                            row_data["player_name"] = draft_player
+                            db().table("draft_player_points").insert(row_data).execute()
                         if pts > 0:
                             matched.append(f"{draft_player} → {pts} pts")
                         updated += 1
