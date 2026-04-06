@@ -38,14 +38,14 @@ ALL_ROLES   = ["player", "admin"]
 DRAFT_TEAMS = {
     "dinu":   {"name": "Dinesh Chargers",          "players": ["Abhishek Sharma","Finn Allen","Mayank Yadav","Romario Shepherd","Avesh Khan","Mitchell Marsh","Pathum Nissanka","Aquib Nabi","Kartik Tyagi","Naman Dhir","Prashant Veer","Urvil Patel"]},
     "yash":   {"name": "Yash Swaggers",            "players": ["Shubman Gill","Mohammed Siraj","Travis Head","Prabhsimran Singh","Rashid Khan","T Natarajan","Mohammed Shami","Rohit Sharma","Tim David","Mohsin Khan","Rahul Tripathi","Abdul Samad"]},
-    "sou":    {"name": "Sou Godfathers",           "players": ["Virat Kohli","Vaibhav Sooryavanshi","Nicholas Pooran","Riyan Parag","Kuldeep Yadav","Ravindra Jadeja","Krunal Pandya","Jofra Archer","Sherfane Rutherford","Jaydev Unadkat","Matt Henry","Kartik Sharma"]},
+    "sou":    {"name": "Sou Godfathers",           "players": ["Virat Kohli","Vaibhav Sooryavanshi","Nicholas Pooran","Riyan Parag","Kuldeep Yadav","Ravindra Jadeja","Krunal Pandya","Jofra Archer","Sherfane Rutherford","Jaydev Unadkat","Kartik Sharma","Matt Henry"]},
     "vamshi": {"name": "Vamshi Hurricanes",        "players": ["Shreyas Iyer","Angkrish Raghuvanshi","Yuzvendra Chahal","Harshal Patel","Jacob Bethell","Khaleel Ahmed","Aiden Markram","Ryan Rickelton","Ramandeep Singh","Zeeshan Ansari","Suyash Sharma","Sameer Rizvi"]},
     "minto":  {"name": "Minato Maniacs",           "players": ["Sanju Samson","Heinrich Klaasen","Sunil Narine","Dewald Brevis","Liam Livingstone","MS Dhoni","Venky Iyer","Deepak Chahar","Mukesh Kumar","Devdutt Padikkal","Karun Nair","Ashwani Kumar"]},
-    "snehit": {"name": "Snehit Synergy",           "players": ["Yashasvi Jaiswal","Bhuvneshwar Kumar","Phil Salt","Jitesh Sharma","Aniket Verma","Josh Hazelwood","Will Jacks","Marco Jansen","Shashank Singh","Vignesh Puthur","Salil Arora","Mangesh Yadav"]},
+    "snehit": {"name": "Snehit Synergy",           "players": ["Yashasvi Jaiswal","Bhuvneshwar Kumar","Phil Salt","Jitesh Sharma","Aniket Verma","Josh Hazelwood","Will Jacks","Marco Jansen","Shashank Singh","Salil Arora","Mangesh Yadav","Vignesh Puthur"]},
     "shank":  {"name": "Shank Tacticos",           "players": ["Hardik Pandya","Noor Ahmad","Tilak Varma","Priyansh Arya","Varun Chakaravarthy","Dhruv Jurel","Donovan Ferreira","Marcus Stoinis","Anukul Roy","Nitish Rana","Vaibhav Arora","Matheesha Pathirana"]},
     "visu":   {"name": "Visu Vijayasena",          "players": ["Sai Sudharsan","Rishabh Pant","Shivam Dube","Washington Sundar","Nehal Wadhera","Prasidh Krishna","R Sai Kishore","Jos Buttler","Nandre Burger","Sarfaraz Khan","Matthew Breetzke","Azmatullah Omarzai"]},
-    "kartik": {"name": "Kartik Kryptonites",       "players": ["Jasprit Bumrah","Ishan Kishan","Tristan Stubbs","Rajat Patidar","Cooper Connolly","Kagiso Rabada","Nitish Kumar Reddy","Glenn Phillips","Ajinkya Rahane","Abhishek Porel","Harpreet Brar","Mayank Markande"]},
-    "vvs":    {"name": "Satwik Quantum Crusaders", "players": ["Axar Patel","Cameron Green","Arshdeep Singh","Shimron Hetmyer","Josh Inglis","Ayush Badoni","Sandeep Sharma","Mitchell Santner","Digvesh Singh","Vipraj Nigam","Ruturaj Gaikwad","Shivang Kumar"]},
+    "kartik": {"name": "Kartik Kryptonites",       "players": ["Jasprit Bumrah","Ishan Kishan","Tristan Stubbs","Rajat Patidar","Cooper Connolly","Kagiso Rabada","Nitish Kumar Reddy","Glenn Phillips","Ajinkya Rahane","Abhishek Porel","Mayank Markande","Harpreet Brar"]},
+    "vvs":    {"name": "Satwik Quantum Crusaders", "players": ["Axar Patel","Cameron Green","Arshdeep Singh","Shimron Hetmyer","Josh Inglis","Ayush Badoni","Sandeep Sharma","Mitchell Santner","Digvesh Singh","Ruturaj Gaikwad","Shivang Kumar","Vipraj Nigam"]},
     "hari":   {"name": "Ruthvenger Legends",       "players": ["K L Rahul","Surya Kumar Yadav","Quinton de Kock","Trent Boult","David Miller","Ravi Bishnoi","Rinku Singh","Lungi Ngidi","Ashutosh Sharma","Rahul Chahar","Shardul Thakur","Rahul Tewatia"]},
 }
 
@@ -961,7 +961,7 @@ def page_bp_results():
     filtered = pending if sel=="All" else [b for b in pending if b["match_name"]==sel]
     for b in filtered:
         bp_type = "💡 Custom" if b.get("bp_type")=="custom" else "🎱 Pool"
-        st.markdown(f"**{get_team(b['player'])}** — {b['match_name']} {bp_type}")
+        st.markdown(f"**{get_team(b['player'])}** (`{b['player']}`) — {b['match_name']} {bp_type}")
         st.markdown(f"*{b['prediction_text']}*")
         c1,c2,c3 = st.columns(3)
         with c1:
@@ -1092,7 +1092,7 @@ def page_match_details():
                 sp_today, wn_today, wk_today = breakdown_sp_from_pred(p, all_preds_match)
             if b: bp_today = int(float(b[0].get("points_awarded") or 0))
             day_rows.append({
-                "Team": u.get("team_name") or u["username"],
+                "Team": f"{u.get('team_name') or u['username']} ({u['username']})",
                 "Score Pts": sp_today, "Winner Pts": wn_today,
                 "Wicket Pts": wk_today, "BP Pts": bp_today,
                 "Total Today": sp_today+wn_today+wk_today+bp_today
@@ -1109,7 +1109,7 @@ def page_match_details():
         else:
             st.dataframe(pd.DataFrame([{
                 "": "✅" if b.get("result")=="correct" else "❌" if b.get("result")=="wrong" else "🚫" if b.get("result")=="dismissed" else "⏳",
-                "Team": get_team(b["player"]),
+                "Team": f"{get_team(b['player'])} ({b['player']})",
                 "Prediction": b["prediction_text"],
                 "Type": "💡" if b.get("bp_type")=="custom" else "🎱",
                 "Pts": int(float(b.get("points_awarded",0))),
@@ -1132,7 +1132,7 @@ def page_match_details():
                     sp, wp, wkp = breakdown_sp_from_pred(p, preds)
                 rows.append({
                     "": "🥇" if i==0 and (p.get("points_awarded") or 0)>=4 else "",
-                    "Team": get_team(p["player"]),
+                    "Team": f"{get_team(p['player'])} ({p['player']})",
                     "Predicted": f"{p.get('predicted_score')} - {str(p.get('predicted_wickets',0)).zfill(2)} | {p.get('predicted_winner','')}",
                     "Actual": f"{m.get('actual_score')} - {str(m.get('actual_wickets',0)).zfill(2)} | {m.get('actual_winner','')}" if m.get("actual_score") else "-",
                     "⚡": "⚡" if m.get("actual_score") and int(p.get("predicted_score") or 0)==m.get("actual_score") else "",
