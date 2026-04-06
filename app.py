@@ -180,6 +180,45 @@ def get_match_teams(match_name):
         return [parts[0].strip(), parts[1].strip()]
     return []
 
+def is_today(match_date_str):
+    try:
+        today = datetime.now().strftime("%Y-%m-%d")
+        return str(match_date_str)[:10] == today
+    except:
+        return False
+
+def sort_matches_today_first(matches):
+    today = [m for m in matches if is_today(m.get("match_date",""))]
+    rest  = [m for m in matches if not is_today(m.get("match_date",""))]
+    return today + rest
+
+def show_today_match_card(matches):
+    """Show a highlighted card for today's match if one exists"""
+    today_matches = [m for m in matches if is_today(m.get("match_date",""))]
+    if not today_matches:
+        return
+    for m in today_matches:
+        mn  = m.get("match_number","?")
+        bp  = "🔒 Locked" if m.get("bp_locked") else "🟢 Open"
+        sp  = "🔒 Locked" if m.get("sp_locked") else "🟢 Open"
+        sta = m.get("status","open").upper()
+        st.markdown(f"""
+<div style="background:linear-gradient(135deg,#1a3a2a,#0d2a1a);border:2px solid #00cc66;
+border-radius:12px;padding:16px 20px;margin-bottom:12px;">
+<div style="display:flex;justify-content:space-between;align-items:center">
+  <div>
+    <div style="color:#00cc66;font-size:0.75em;font-weight:bold;letter-spacing:1px">TODAY'S MATCH</div>
+    <div style="color:#ffffff;font-size:1.1em;font-weight:bold;margin-top:2px">Match #{mn} — {m["match_name"]}</div>
+    <div style="color:#aaaaaa;font-size:0.8em;margin-top:4px">{m.get("match_date","")}</div>
+  </div>
+  <div style="text-align:right;font-size:0.82em">
+    <div style="color:#cccccc">BP: <b style="color:#00cc66">{bp}</b></div>
+    <div style="color:#cccccc;margin-top:2px">SP: <b style="color:#00cc66">{sp}</b></div>
+    <div style="color:#cccccc;margin-top:2px">Status: <b style="color:#ffffff">{sta}</b></div>
+  </div>
+</div>
+</div>""", unsafe_allow_html=True)
+
 def calc_streak_from_preds(username, all_preds):
     my_preds = [p for p in all_preds if p.get("player")==username and p.get("actual_score") is not None]
     done = sorted(my_preds, key=lambda x: x.get("submitted_at") or "", reverse=True)
@@ -299,20 +338,20 @@ def page_leaderboard():
         un   = u["username"]
         team = u.get("team_name") or u.get("display_name") or un
         my_preds = [p for p in all_preds if p["player"]==un]
-        score_pts = winner_pts = wicket_pts = 0
+        score_pts = match_pts = wicket_pts = 0
         for p in my_preds:
             if p.get("actual_score") is not None:
                 match_preds = [x for x in all_preds if x["match_name"]==p["match_name"] and x.get("actual_score") is not None]
                 sp,wp,wkp = breakdown_sp_from_pred(p, match_preds)
-                score_pts += sp; winner_pts += wp; wicket_pts += wkp
+                score_pts += sp; match_pts += wp; wicket_pts += wkp
         bp_pts     = int(sum(float(b.get("points_awarded") or 0) for b in all_bps     if b["player"]==un))
         streak_pts = int(sum(float(s.get("bonus_points")   or 0) for s in all_streaks if s["player"]==un))
-        total      = score_pts+winner_pts+wicket_pts+bp_pts+streak_pts
+        total      = score_pts+match_pts+wicket_pts+bp_pts+streak_pts
         exacts     = sum(1 for p in my_preds if p.get("actual_score") is not None
                         and int(p.get("predicted_score") or 0)==int(p.get("actual_score") or -1))
         rows.append({
             "_un": un, "Rank":"", "Team": team,
-            "Score Pts": score_pts, "Winner Pts": winner_pts, "Wicket Pts": wicket_pts,
+            "Score Pts": score_pts, "Match Pts": match_pts, "Wicket Pts": wicket_pts,
             "BP Pts": bp_pts, "Streak Pts": streak_pts,
             "⚡ Exacts": exacts, "Total": total,
         })
@@ -484,17 +523,17 @@ def page_overall_stats():
             team = u.get("team_name") or un
             up   = [p for p in all_preds if p["player"]==un and p.get("actual_score") is not None]
             ubps = [b for b in all_bps if b["player"]==un]
-            score_pts = winner_pts = wicket_pts = 0
+            score_pts = match_pts = wicket_pts = 0
             for p in up:
                 mp = [x for x in all_preds if x["match_name"]==p["match_name"] and x.get("actual_score") is not None]
                 sp,wp,wkp = breakdown_sp_from_pred(p,mp)
-                score_pts+=sp; winner_pts+=wp; wicket_pts+=wkp
+                score_pts+=sp; match_pts+=wp; wicket_pts+=wkp
             bp_total  = int(sum(float(b.get("points_awarded") or 0) for b in ubps))
             str_total = int(sum(float(s.get("bonus_points") or 0) for s in all_streaks if s["player"]==un))
-            total = score_pts+winner_pts+wicket_pts+bp_total+str_total
+            total = score_pts+match_pts+wicket_pts+bp_total+str_total
             full.append({
                 "Team": team, "Total": total,
-                "Score Pts": score_pts,"Winner Pts": winner_pts,"Wicket Pts": wicket_pts,
+                "Score Pts": score_pts,"Match Pts": match_pts,"Wicket Pts": wicket_pts,
                 "BP Pts": bp_total,"Streak Pts": str_total,
                 "SP Wins": calc_sp_wins(un,all_preds,match_names),
                 "BP ✅": sum(1 for b in ubps if b.get("result")=="correct"),
@@ -516,18 +555,18 @@ def page_overall_stats():
             up   = [p for p in all_preds if p["player"]==un and p.get("actual_score") is not None]
             sp_wins = calc_sp_wins(un,all_preds,match_names)
             played  = len(up)
-            score_pts = winner_pts = wicket_pts = 0
+            score_pts = match_pts = wicket_pts = 0
             for p in up:
                 mp = [x for x in all_preds if x["match_name"]==p["match_name"] and x.get("actual_score") is not None]
                 sp,wp,wkp = breakdown_sp_from_pred(p,mp)
-                score_pts+=sp; winner_pts+=wp; wicket_pts+=wkp
+                score_pts+=sp; match_pts+=wp; wicket_pts+=wkp
             corr_w  = sum(1 for p in up if caps(p.get("predicted_winner",""))==caps(p.get("actual_winner","")))
             margin  = sum(abs(int(p.get("predicted_score") or 0)-int(p.get("actual_score") or 0)) for p in up)
             exacts  = sum(1 for p in up if int(p.get("predicted_score") or 0)==int(p.get("actual_score") or 0))
             sp_rows.append({
                 "Team": team,"Played": played,"SP Wins": sp_wins,
                 "Win %": f"{round(sp_wins/played*100)}%" if played else "0%",
-                "Score Pts": score_pts,"Winner Pts": winner_pts,"Wicket Pts": wicket_pts,
+                "Score Pts": score_pts,"Match Pts": match_pts,"Wicket Pts": wicket_pts,
                 "Correct Winners": corr_w,"Exact Preds": exacts,"Margin of Error": margin,
             })
         sp_rows.sort(key=lambda x: x["SP Wins"], reverse=True)
@@ -597,16 +636,16 @@ def page_overall_stats():
                     if r==1: f+=1
                     elif r==2: s+=1
                     elif r==3: t+=1
-                score_pts=winner_pts=wicket_pts=0
+                score_pts=match_pts=wicket_pts=0
                 for p in up:
                     mp = [x for x in all_preds if x["match_name"]==p["match_name"] and x.get("actual_score") is not None]
                     sp,wp,wkp = breakdown_sp_from_pred(p,mp)
-                    score_pts+=sp; winner_pts+=wp; wicket_pts+=wkp
+                    score_pts+=sp; match_pts+=wp; wicket_pts+=wkp
                 bp_total  = int(sum(float(b.get("points_awarded") or 0) for b in ubp))
                 str_total = int(sum(float(s2.get("bonus_points") or 0) for s2 in (db().table("streaks").select("bonus_points").eq("player",un).execute().data or [])))
                 return {
-                    "Total Points": score_pts+winner_pts+wicket_pts+bp_total+str_total,
-                    "Score Points": score_pts,"Winner Points": winner_pts,"Wicket Points": wicket_pts,
+                    "Total Points": score_pts+match_pts+wicket_pts+bp_total+str_total,
+                    "Score Points": score_pts,"Match Points": match_pts,"Wicket Points": wicket_pts,
                     "BP Points": bp_total,"Streak Points": str_total,
                     "SP Wins": calc_sp_wins(un,all_preds,match_names),
                     "BP Correct": sum(1 for b in ubp if b.get("result")=="correct"),
@@ -650,15 +689,15 @@ def page_player_stats():
     my_preds = db().table("predictions").select("*").eq("player",un).execute().data or []
     my_bps   = db().table("pool_bps").select("*").eq("player",un).execute().data or []
     my_str   = db().table("streaks").select("bonus_points").eq("player",un).execute().data or []
-    score_pts=winner_pts=wicket_pts=0
+    score_pts=match_pts=wicket_pts=0
     for p in my_preds:
         if p.get("actual_score") is not None:
             mp = [x for x in all_preds_full if x["match_name"]==p["match_name"] and x.get("actual_score") is not None]
             sp,wp,wkp = breakdown_sp_from_pred(p,mp)
-            score_pts+=sp; winner_pts+=wp; wicket_pts+=wkp
+            score_pts+=sp; match_pts+=wp; wicket_pts+=wkp
     b_pts  = int(sum(float(b.get("points_awarded") or 0) for b in my_bps))
     st_pts = int(sum(float(s.get("bonus_points")   or 0) for s in my_str))
-    tot    = score_pts+winner_pts+wicket_pts+b_pts+st_pts
+    tot    = score_pts+match_pts+wicket_pts+b_pts+st_pts
     streak = calc_streak_from_preds(un, all_preds_full)
     exacts = sum(1 for p in my_preds if p.get("actual_score") is not None
                  and int(p.get("predicted_score") or 0)==int(p.get("actual_score") or -1))
@@ -667,7 +706,7 @@ def page_player_stats():
     c1,c2,c3,c4,c5,c6 = st.columns(6)
     c1.metric("🏆 Total", tot)
     c2.metric("🎯 Score Pts", score_pts)
-    c3.metric("🏆 Winner Pts", winner_pts)
+    c3.metric("🏆 Match Pts", match_pts)
     c4.metric("🎳 Wicket Pts", wicket_pts)
     c5.metric("🎱 BP Pts", b_pts)
     c6.metric("🔥 Streak Pts", st_pts)
@@ -680,7 +719,7 @@ def page_player_stats():
         st.subheader("📊 Points Breakdown")
         st.bar_chart(pd.DataFrame({
             "Category": ["Score","Winner","Wicket","BP","Streak"],
-            "Points":   [score_pts,winner_pts,wicket_pts,b_pts,st_pts]
+            "Points":   [score_pts,match_pts,wicket_pts,b_pts,st_pts]
         }).set_index("Category"), use_container_width=True, height=250)
     st.markdown("---")
     st.subheader("🔮 Score Predictions")
@@ -697,7 +736,7 @@ def page_player_stats():
                 "Match #": f"#{mm.get(p['match_name'],'?')}","Match": p["match_name"],
                 "Predicted": f"{p.get('predicted_score')} - {str(p.get('predicted_wickets',0)).zfill(2)} | {p.get('predicted_winner','')}",
                 "Actual": act,"⚡": ex,
-                "Score Pts": sp,"Winner Pts": wp,"Wicket Pts": wkp,"Total Pts": sp+wp+wkp,
+                "Score Pts": sp,"Match Pts": wp,"Wicket Pts": wkp,"Total Pts": sp+wp+wkp,
             })
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
     else:
@@ -782,16 +821,16 @@ def page_hall_of_fame():
                 tmpl_counts[k] = tmpl_counts.get(k,0)+1
         bp_variety = len(set(b.get("template_key","") for b in ubps
                             if b.get("template_key","") not in ["","custom","admin_behalf"]))
-        score_pts=winner_pts=wicket_pts=0
+        score_pts=match_pts=wicket_pts=0
         for p in up:
             mp = [x for x in all_preds if x["match_name"]==p["match_name"] and x.get("actual_score") is not None]
             sp,wp,wkp = breakdown_sp_from_pred(p,mp)
-            score_pts+=sp; winner_pts+=wp; wicket_pts+=wkp
+            score_pts+=sp; match_pts+=wp; wicket_pts+=wkp
         bp_total  = int(sum(float(b.get("points_awarded") or 0) for b in ubps))
         str_total = int(sum(float(s.get("bonus_points") or 0) for s in (db().table("streaks").select("bonus_points").eq("player",un).execute().data or [])))
         stats[un] = {
             "team": team,"username": un,
-            "total": score_pts+winner_pts+wicket_pts+bp_total+str_total,
+            "total": score_pts+match_pts+wicket_pts+bp_total+str_total,
             "sp_wins": calc_sp_wins(un,all_preds,mnames),
             "first": first,"second": second,
             "bp_correct": sum(1 for b in ubps if b.get("result")=="correct"),
@@ -847,7 +886,9 @@ def page_bp_pool():
         st.warning("⏳ No open matches for BP submission.")
         return
     mm    = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(get_matches())}
-    match = st.selectbox("Select Match",[f"#{mm.get(m['match_name'],'?')} — {m['match_name']}" for m in matches])
+    show_today_match_card(matches)
+    matches = sort_matches_today_first(matches)
+    match = st.selectbox("Select Match",[f"#{mm.get(m['match_name'],'?')} — {m['match_name']}{'  ← TODAY' if is_today(m.get('match_date','')) else ''}" for m in matches])
     match_name = match.split(" — ",1)[1]
     existing = db().table("pool_bps").select("*").eq("player",st.session_state.user["username"]).eq("match_name",match_name).execute().data or []
     if existing:
@@ -924,7 +965,9 @@ def page_submit_sp():
         st.warning("⏳ No open matches.")
         return
     mm    = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(get_matches())}
-    match = st.selectbox("Select Match",[f"#{mm.get(m['match_name'],'?')} — {m['match_name']}" for m in matches])
+    show_today_match_card(matches)
+    matches = sort_matches_today_first(matches)
+    match = st.selectbox("Select Match",[f"#{mm.get(m['match_name'],'?')} — {m['match_name']}{'  ← TODAY' if is_today(m.get('match_date','')) else ''}" for m in matches])
     match_name = match.split(" — ",1)[1]
     existing = db().table("predictions").select("*").eq("player",st.session_state.user["username"]).eq("match_name",match_name).execute().data or []
     if existing:
@@ -1027,8 +1070,11 @@ def page_lock_cancel():
     user = st.session_state.user
     now  = datetime.now().strftime("%Y-%m-%d %H:%M")
     mm   = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(matches)}
-    for m in matches:
-        with st.expander(f"Match #{mm[m['match_name']]} — {m['match_name']} | {m.get('status','open').upper()}"):
+    show_today_match_card(matches)
+    sorted_matches = sort_matches_today_first(matches)
+    for m in sorted_matches:
+        today_tag = " 🟢 TODAY" if is_today(m.get("match_date","")) else ""
+        with st.expander(f"Match #{mm[m['match_name']]} — {m['match_name']} | {m.get('status','open').upper()}{today_tag}"):
             c1,c2 = st.columns(2)
             with c1:
                 if m.get("bp_locked"):
@@ -1076,8 +1122,11 @@ def page_match_details():
     matches = get_matches()
     if not matches: st.info("No matches yet."); return
     mm      = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(matches)}
-    options = [f"Match #{mm[m['match_name']]} — {m['match_name']}" for m in matches]
-    idx     = st.selectbox("Select Match", range(len(matches)), format_func=lambda i: options[i])
+    show_today_match_card(matches)
+    sorted_matches = sort_matches_today_first(matches)
+    options = [f"Match #{mm[m['match_name']]} — {m['match_name']}{'  ← TODAY' if is_today(m.get('match_date','')) else ''}" for m in sorted_matches]
+    idx     = st.selectbox("Select Match", range(len(sorted_matches)), format_func=lambda i: options[i])
+    matches = sorted_matches
     m       = matches[idx]
     st.markdown(f"### 🏏 Match #{mm[m['match_name']]} — {m['match_name']} | {m.get('match_date','')}")
     c1,c2,c3 = st.columns(3)
@@ -1101,7 +1150,7 @@ def page_match_details():
             if b: bp_today = int(float(b[0].get("points_awarded") or 0))
             day_rows.append({
                 "Team": u.get("team_name") or u["username"],
-                "Score Pts": sp_today,"Winner Pts": wn_today,
+                "Score Pts": sp_today,"Match Pts": wn_today,
                 "Wicket Pts": wk_today,"BP Pts": bp_today,
                 "Total Today": sp_today+wn_today+wk_today+bp_today
             })
@@ -1141,7 +1190,7 @@ def page_match_details():
                     "Predicted": f"{p.get('predicted_score')} - {str(p.get('predicted_wickets',0)).zfill(2)} | {p.get('predicted_winner','')}",
                     "Actual": f"{m.get('actual_score')} - {str(m.get('actual_wickets',0)).zfill(2)} | {m.get('actual_winner','')}" if m.get("actual_score") else "-",
                     "⚡": "⚡" if m.get("actual_score") and int(p.get("predicted_score") or 0)==m.get("actual_score") else "",
-                    "Score Pts": sp,"Winner Pts": wp,"Wicket Pts": wkp,"Total": sp+wp+wkp,
+                    "Score Pts": sp,"Match Pts": wp,"Wicket Pts": wkp,"Total": sp+wp+wkp,
                 })
             st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
     else:
