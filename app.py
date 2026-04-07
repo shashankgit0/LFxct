@@ -864,7 +864,7 @@ def page_bp_pool():
     mm    = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(get_matches())}
     matches = sort_matches_today_first(matches)
     match = st.selectbox("Select Match",[f"#{mm.get(m['match_name'],'?')} — {m['match_name']}{'  *' if is_today(m.get('match_date','')) else ''}" for m in matches])
-    match_name = match.split(" — ",1)[1]
+    match_name = match.split(" — ",1)[1].replace("  *","").strip()
     existing = db().table("pool_bps").select("*").eq("player",st.session_state.user["username"]).eq("match_name",match_name).execute().data or []
     if existing:
         b = existing[0]
@@ -942,7 +942,7 @@ def page_submit_sp():
     mm    = {m["match_name"]: m.get("match_number",i+1) for i,m in enumerate(get_matches())}
     matches = sort_matches_today_first(matches)
     match = st.selectbox("Select Match",[f"#{mm.get(m['match_name'],'?')} — {m['match_name']}{'  *' if is_today(m.get('match_date','')) else ''}" for m in matches])
-    match_name = match.split(" — ",1)[1]
+    match_name = match.split(" — ",1)[1].replace("  *","").strip()
     existing = db().table("predictions").select("*").eq("player",st.session_state.user["username"]).eq("match_name",match_name).execute().data or []
     if existing:
         p = existing[0]
