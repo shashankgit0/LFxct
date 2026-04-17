@@ -131,6 +131,7 @@ BP_POOL = {
         {"key": "sp_30six",    "template": "Match to have 30+ sixes total",                "note": "Type any name in blank"},
         {"key": "sp_first6",   "template": "First ball of the match to be a boundary",     "note": "Type any name in blank"},
         {"key": "sp_firstwk",  "template": "First ball of the match to be a wicket",       "note": "Type any name in blank"},
+        {"key": "sp_firstwk",  "template": "A wicket to fall in {name} over",               "note": "Exact specific over"},
         {"key": "sp_top3_20",  "template": "Top 3 batters of {name} to all score 20+",    "note": None},
     ],
 }
