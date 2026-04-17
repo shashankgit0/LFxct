@@ -116,7 +116,7 @@ BP_POOL = {
         {"key": "team_10wk",   "template": "{name} team to win by 10 wickets",             "note": None},
         {"key": "team_50run",  "template": "{name} team to win by 50+ runs",               "note": None},
         {"key": "team_allout", "template": "{name} team to be all out",                    "note": None},
-        {"key": "team_1w3ov",  "template": "{name} team to lose 3+ wickets inside 3 overs","note": None},
+        {"key": "team_1w3ov",  "template": "{name} team to lose 2+ wickets inside 6 overs", "note": None},
         {"key": "team_100p",   "template": "{name} team to have a 100+ partnership",       "note": None},
         {"key": "team_10ext",  "template": "{name} team to have 15+ extras total",         "note": None},
     ],
