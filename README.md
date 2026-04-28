@@ -137,11 +137,6 @@ streamlit run app.py
 
 ---
 
-## 📸 Screenshots
-
-> *(Add leaderboard, player stats, and BP pool screenshots here)*
-
----
 
 ## 👤 Author
 
