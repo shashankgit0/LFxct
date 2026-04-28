@@ -134,6 +134,19 @@ Then run:
 ```bash
 streamlit run app.py
 ```
+---
+📸 Screenshots
+
+<img width="408" height="716" alt="Screenshot 2026-04-27 at 21 56 04" src="https://github.com/user-attachments/assets/41332af6-3430-4094-a24b-b5d734b31dc3" />
+
+<img width="1470" height="609" alt="Screenshot 2026-04-27 at 22 03 03" src="https://github.com/user-attachments/assets/ad8f9fa5-0c47-4c17-a96f-0cdc6e924a5f" />
+
+<img width="1470" height="609" alt="Screenshot 2026-04-27 at 22 03 03" src="https://github.com/user-attachments/assets/ed348fd6-c9d6-40a2-9c9c-4a5e8f73de45" />
+
+<img width="1470" height="702" alt="Screenshot 2026-04-27 at 22 05 00" src="https://github.com/user-attachments/assets/f84b5773-0fa9-475b-a4a8-0a9e88c84890" />
+
+
+
 
 ---
 
